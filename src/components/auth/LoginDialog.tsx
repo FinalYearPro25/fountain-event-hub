@@ -4,10 +4,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { User, Users, Shield, Crown } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginDialogProps {
   open: boolean;
@@ -17,127 +17,117 @@ interface LoginDialogProps {
 export const LoginDialog = ({ open, onOpenChange }: LoginDialogProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setLoading(false);
-      onOpenChange(false);
-    }, 1500);
-  };
 
-  const roleExamples = [
-    {
-      icon: User,
-      title: "Student Login",
-      email: "student@fountain.edu.ng",
-      badge: "Student",
-      badgeColor: "bg-blue-100 text-blue-700"
-    },
-    {
-      icon: Users,
-      title: "Staff Login",
-      email: "staff@fountain.edu.ng",
-      badge: "Staff",
-      badgeColor: "bg-green-100 text-green-700"
-    },
-    {
-      icon: Shield,
-      title: "Dean Login",
-      email: "dean@fountain.edu.ng",
-      badge: "Dean",
-      badgeColor: "bg-purple-100 text-purple-700"
-    },
-    {
-      icon: Crown,
-      title: "Admin Login",
-      email: "admin@fountain.edu.ng",
-      badge: "Admin",
-      badgeColor: "bg-red-100 text-red-700"
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
+        onOpenChange(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Welcome Back</DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Welcome Back
+          </DialogTitle>
+          <DialogDescription className="text-center text-gray-600">
             Sign in to your Fountain Events account
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="demo">Demo Access</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="login" className="space-y-4">
-            <form onSubmit={handleLogin} className="space-y-4">
+        <Card className="border-0 shadow-none">
+          <CardContent className="p-0">
+            <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email Address
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="your.email@fountain.edu.ng"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 border-2 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-11 border-2 focus:border-blue-500 transition-colors pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              
+              <Button 
+                type="submit" 
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium" 
+                disabled={loading}
+              >
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            <div className="text-center">
-              <Button variant="link" className="text-sm">
+            
+            <div className="text-center mt-6">
+              <Button variant="link" className="text-sm text-blue-600 hover:text-blue-700">
                 Forgot your password?
               </Button>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="demo" className="space-y-4">
-            <p className="text-sm text-gray-600 text-center mb-4">
-              Try different user roles to explore the system
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {roleExamples.map((role, index) => (
-                <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-200">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <role.icon className="h-5 w-5 text-gray-600" />
-                      <Badge className={`text-xs ${role.badgeColor}`}>
-                        {role.badge}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <CardTitle className="text-sm font-medium mb-1">
-                      {role.title}
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      {role.email}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   );

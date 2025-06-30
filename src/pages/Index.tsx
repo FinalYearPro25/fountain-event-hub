@@ -1,128 +1,153 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Clock, CheckCircle, MapPin, CreditCard } from "lucide-react";
-import { LoginDialog } from "@/components/auth/LoginDialog";
-import { RegisterDialog } from "@/components/auth/RegisterDialog";
+import { Calendar, Users, MapPin, Shield, CheckCircle, Star, ArrowRight, Sparkles } from "lucide-react";
 import { FeatureCard } from "@/components/landing/FeatureCard";
 import { StatsSection } from "@/components/landing/StatsSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { LoginDialog } from "@/components/auth/LoginDialog";
+import { RegisterDialog } from "@/components/auth/RegisterDialog";
+import { useAuthContext } from "@/components/auth/AuthProvider";
+import { Navigate } from "react-router-dom";
 
 const Index = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const { user, loading } = useAuthContext();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const features = [
     {
       icon: Calendar,
-      title: "Smart Event Management",
-      description: "Create, manage, and track events with intelligent scheduling and conflict detection",
+      title: "Smart Event Scheduling",
+      description: "Intelligent conflict detection and automated scheduling with real-time availability updates.",
       color: "bg-blue-500"
     },
     {
       icon: Users,
-      title: "Role-Based Access Control",
-      description: "Multi-level approval workflows for students, staff, deans, and senate members",
+      title: "Seamless Registration",
+      description: "One-click event registration with automated confirmation and certificate generation.",
       color: "bg-green-500"
     },
     {
       icon: MapPin,
       title: "Venue Management",
-      description: "Real-time venue booking with capacity management and availability tracking",
+      description: "Advanced venue booking system with capacity management and 3D floor plans.",
       color: "bg-purple-500"
     },
     {
-      icon: CheckCircle,
-      title: "Automated Approvals",
-      description: "Streamlined approval process with notifications and deadline tracking",
+      icon: Shield,
+      title: "Role-Based Access",
+      description: "Comprehensive permission system with multi-level approval workflows for security.",
       color: "bg-orange-500"
-    },
-    {
-      icon: Clock,
-      title: "Resource Booking",
-      description: "Book audio-visual equipment, furniture, and other resources seamlessly",
-      color: "bg-indigo-500"
-    },
-    {
-      icon: CreditCard,
-      title: "Integrated Payments",
-      description: "Secure payment processing for external bookings and event fees",
-      color: "bg-red-500"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Header */}
-      <header className="border-b bg-white/70 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Navigation */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Fountain Events
+                </h1>
+                <p className="text-xs text-gray-500">Campus Event Management</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Fountain Events</h1>
-              <p className="text-xs text-gray-600">Campus Event Management</p>
+            <div className="flex space-x-3">
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowLogin(true)}
+                className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300"
+              >
+                Sign In
+              </Button>
+              <Button 
+                onClick={() => setShowRegister(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" onClick={() => setShowLogin(true)}>
-              Login
-            </Button>
-            <Button onClick={() => setShowRegister(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-              Get Started
-            </Button>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
-          <Badge className="mb-6 bg-blue-100 text-blue-700 hover:bg-blue-200">
-            Fountain University - Campus Events
-          </Badge>
-          <h1 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-full blur-3xl transform -translate-y-1/2"></div>
+        <div className="max-w-7xl mx-auto text-center relative">
+          <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-8">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Advanced Campus Event Management System
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Streamline Your
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600"> Campus Events</span>
+            <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Campus Events
+            </span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            A comprehensive event management system designed for Fountain University. 
-            Manage venues, resources, approvals, and registrations all in one powerful platform.
+          
+          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            Comprehensive event management platform designed specifically for Fountain University. 
+            From planning to execution, manage every aspect of your campus events with intelligent 
+            automation and role-based workflows.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
               size="lg" 
               onClick={() => setShowRegister(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-3 text-lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
-              Start Planning Events
+              Start Managing Events
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" className="px-8 py-3 text-lg">
-              Watch Demo
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={() => setShowLogin(true)}
+              className="border-2 border-gray-300 hover:border-blue-500 px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:bg-blue-50"
+            >
+              Sign In to Account
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <StatsSection />
-
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white/50">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need for Campus Events
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Powerful Features for Every User
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From simple department meetings to large-scale university conferences, 
-              our platform handles every aspect of event management.
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              From students to administrators, our platform provides tailored experiences 
+              for efficient event management across all university roles.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
               <FeatureCard key={index} {...feature} />
             ))}
@@ -130,106 +155,146 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="container mx-auto">
+      {/* Role-Based Benefits */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How It Works
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Designed for Every Role
             </h2>
-            <p className="text-xl text-gray-600">
-              Simple steps to organize successful events
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Specialized dashboards and features for different user types in the university ecosystem.
             </p>
           </div>
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              { step: "01", title: "Create Event", description: "Fill out event details and requirements" },
-              { step: "02", title: "Book Venue", description: "Select and reserve your perfect venue" },
-              { step: "03", title: "Get Approval", description: "Automated routing through approval hierarchy" },
-              { step: "04", title: "Manage & Execute", description: "Track registrations and manage your event" }
-            ].map((item, index) => (
-              <Card key={index} className="text-center border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <CardHeader>
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-bold text-white">{item.step}</span>
-                  </div>
-                  <CardTitle className="text-xl">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">{item.description}</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Students</h3>
+              <p className="text-gray-600 mb-4">Register for events, track attendance, and earn certificates automatically.</p>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Event discovery</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />One-click registration</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Digital certificates</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
+                <Calendar className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Staff</h3>
+              <p className="text-gray-600 mb-4">Create and manage events with automated approval workflows.</p>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Event creation wizard</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Resource booking</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Participant management</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                <Shield className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Deans</h3>
+              <p className="text-gray-600 mb-4">Review and approve college-level events with comprehensive oversight tools.</p>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Approval workflows</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />College analytics</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Budget oversight</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
+                <Star className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Admins</h3>
+              <p className="text-gray-600 mb-4">Complete system control with advanced analytics and user management.</p>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />System administration</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Advanced analytics</li>
+                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Role management</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      <StatsSection />
       <TestimonialsSection />
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-        <div className="container mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-4">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Ready to Transform Your Campus Events?
           </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join Fountain University in creating memorable, well-organized events.
+          <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+            Join thousands of university users who have streamlined their event management 
+            with our comprehensive platform.
           </p>
-          <Button 
-            size="lg" 
-            variant="secondary"
-            onClick={() => setShowRegister(true)}
-            className="px-8 py-3 text-lg bg-white text-blue-600 hover:bg-gray-100"
-          >
-            Get Started Today
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={() => setShowRegister(true)}
+              className="bg-white text-blue-600 hover:bg-gray-50 px-8 py-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+            >
+              Get Started Today
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={() => setShowLogin(true)}
+              className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-xl font-semibold transition-all duration-300"
+            >
+              Sign In
+            </Button>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
+      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-lg font-bold">Fountain Events</span>
+                <span className="text-xl font-bold">Fountain Events</span>
               </div>
-              <p className="text-gray-400">
-                Empowering Fountain University with seamless event management.
+              <p className="text-gray-400 mb-4 max-w-md">
+                Comprehensive campus event management system designed specifically for 
+                Fountain University's diverse academic community.
               </p>
             </div>
+            
             <div>
-              <h3 className="font-semibold mb-4">Features</h3>
+              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
-                <li>Event Management</li>
-                <li>Venue Booking</li>
-                <li>Resource Management</li>
-                <li>Approval Workflows</li>
+                <li><a href="#" className="hover:text-white transition-colors">Events</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Venues</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Resources</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
               </ul>
             </div>
+            
             <div>
-              <h3 className="font-semibold mb-4">Support</h3>
+              <h3 className="text-lg font-semibold mb-4">Contact</h3>
               <ul className="space-y-2 text-gray-400">
-                <li>Help Center</li>
-                <li>Documentation</li>
-                <li>Contact Support</li>
-                <li>Training</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Contact</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li>events@fountain.edu.ng</li>
-                <li>+234 (0) 123 456 7890</li>
                 <li>Fountain University</li>
                 <li>Osogbo, Nigeria</li>
+                <li>events@fountain.edu.ng</li>
+                <li>+234 (0) 803 123 4567</li>
               </ul>
             </div>
           </div>
+          
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2024 Fountain University. All rights reserved.</p>
           </div>
