@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,12 +21,46 @@ export const LoginDialog = ({ open, onOpenChange }: LoginDialogProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Clear form when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setEmail("");
+      setPassword("");
+      setShowPassword(false);
+    }
+  }, [open]);
+
+  const cleanupAuthState = () => {
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Clean up existing state
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -37,12 +71,16 @@ export const LoginDialog = ({ open, onOpenChange }: LoginDialogProps) => {
           description: error.message,
           variant: "destructive",
         });
-      } else {
+      } else if (data.user) {
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
         });
         onOpenChange(false);
+        // Force page reload for clean state
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
       }
     } catch (error) {
       toast({
@@ -120,12 +158,6 @@ export const LoginDialog = ({ open, onOpenChange }: LoginDialogProps) => {
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            
-            <div className="text-center mt-6">
-              <Button variant="link" className="text-sm text-blue-600 hover:text-blue-700">
-                Forgot your password?
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </DialogContent>

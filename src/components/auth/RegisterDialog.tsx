@@ -1,14 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Users, Building } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -29,24 +30,114 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
     yearOfStudy: ""
   });
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const colleges = [
-    "College of Engineering",
-    "College of Sciences",
-    "College of Humanities",
-    "College of Business",
-    "College of Agriculture",
-    "College of Medicine"
+    "College of Arts",
+    "College of Natural and Applied Sciences", 
+    "College of Basic Medical and Health Sciences",
+    "College of Management and Social Sciences",
+    "College of Law"
   ];
+
+  // Clear form when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setUserType("");
+      setFormData({
+        fullName: "",
+        email: "",
+        password: "",
+        phone: "",
+        studentId: "",
+        staffId: "",
+        college: "",
+        department: "",
+        yearOfStudy: ""
+      });
+    }
+  }, [open]);
+
+  const cleanupAuthState = () => {
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate registration
-    setTimeout(() => {
+
+    try {
+      // Clean up existing state
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: formData.fullName,
+            phone_number: formData.phone,
+            user_type: userType,
+            student_id: formData.studentId,
+            staff_id: formData.staffId,
+            college: formData.college,
+            department: formData.department,
+            year_of_study: formData.yearOfStudy ? parseInt(formData.yearOfStudy) : null
+          }
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account Already Exists",
+            description: "An account with this email already exists. Please try logging in instead.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Registration Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Registration Successful!",
+          description: "Please check your email to verify your account, then you can log in.",
+        });
+        onOpenChange(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Registration Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-      onOpenChange(false);
-    }, 2000);
+    }
   };
 
   const updateFormData = (field: string, value: string) => {

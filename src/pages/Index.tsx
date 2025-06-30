@@ -1,10 +1,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Shield, CheckCircle, Star, ArrowRight, Sparkles } from "lucide-react";
+import { Calendar, Users, MapPin, Shield, CheckCircle, ArrowRight, Sparkles } from "lucide-react";
 import { FeatureCard } from "@/components/landing/FeatureCard";
 import { StatsSection } from "@/components/landing/StatsSection";
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { LoginDialog } from "@/components/auth/LoginDialog";
 import { RegisterDialog } from "@/components/auth/RegisterDialog";
 import { useAuthContext } from "@/components/auth/AuthProvider";
@@ -43,7 +42,7 @@ const Index = () => {
     {
       icon: MapPin,
       title: "Venue Management",
-      description: "Advanced venue booking system with capacity management and 3D floor plans.",
+      description: "Advanced venue booking system with capacity management and resource allocation.",
       color: "bg-purple-500"
     },
     {
@@ -139,11 +138,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Powerful Features for Every User
+              Powerful Features for Campus Events
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              From students to administrators, our platform provides tailored experiences 
-              for efficient event management across all university roles.
+              From students to administrators, our platform provides comprehensive tools 
+              for efficient event management across all university operations.
             </p>
           </div>
           
@@ -155,76 +154,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Role-Based Benefits */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Designed for Every Role
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Specialized dashboards and features for different user types in the university ecosystem.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Students</h3>
-              <p className="text-gray-600 mb-4">Register for events, track attendance, and earn certificates automatically.</p>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Event discovery</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />One-click registration</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Digital certificates</li>
-              </ul>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
-                <Calendar className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Staff</h3>
-              <p className="text-gray-600 mb-4">Create and manage events with automated approval workflows.</p>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Event creation wizard</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Resource booking</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Participant management</li>
-              </ul>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-                <Shield className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Deans</h3>
-              <p className="text-gray-600 mb-4">Review and approve college-level events with comprehensive oversight tools.</p>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Approval workflows</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />College analytics</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Budget oversight</li>
-              </ul>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
-                <Star className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Admins</h3>
-              <p className="text-gray-600 mb-4">Complete system control with advanced analytics and user management.</p>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />System administration</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Advanced analytics</li>
-                <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Role management</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <StatsSection />
-      <TestimonialsSection />
 
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
