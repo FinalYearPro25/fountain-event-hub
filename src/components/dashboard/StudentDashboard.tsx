@@ -7,18 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Users, MapPin, Clock, Star, Plus, Search, Filter, BookOpen, Award, Bell } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EventRegistrationModal } from './EventRegistrationModal';
 
 export const StudentDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
   // Mock data for events
-  const upcomingEvents = [
+  const [upcomingEvents, setUpcomingEvents] = useState([
     {
       id: 1,
       title: "Tech Innovation Summit 2024",
-      description: "Annual technology conference featuring industry leaders",
+      description: "Annual technology conference featuring industry leaders and startup showcases",
       date: "2024-02-15",
       time: "09:00 AM",
       venue: "Main Auditorium",
@@ -26,12 +29,14 @@ export const StudentDashboard = () => {
       status: "open",
       registered: false,
       capacity: 300,
-      registered_count: 150
+      registered_count: 150,
+      registration_fee: 500,
+      organizer: "Dr. Sarah Johnson"
     },
     {
       id: 2,
       title: "Cultural Festival",
-      description: "Celebrate diversity with music, dance, and food",
+      description: "Celebrate diversity with music, dance, and food from around the world",
       date: "2024-02-20",
       time: "02:00 PM",
       venue: "Campus Ground",
@@ -39,12 +44,14 @@ export const StudentDashboard = () => {
       status: "open",
       registered: true,
       capacity: 500,
-      registered_count: 320
+      registered_count: 320,
+      registration_fee: 0,
+      organizer: "Student Affairs"
     },
     {
       id: 3,
       title: "Career Development Workshop",
-      description: "Professional skills and career guidance session",
+      description: "Professional skills and career guidance session with industry experts",
       date: "2024-02-25",
       time: "10:00 AM",
       venue: "Business Hall",
@@ -52,9 +59,26 @@ export const StudentDashboard = () => {
       status: "open",
       registered: false,
       capacity: 100,
-      registered_count: 65
+      registered_count: 65,
+      registration_fee: 200,
+      organizer: "Career Services"
+    },
+    {
+      id: 4,
+      title: "AI and Machine Learning Seminar",
+      description: "Introduction to artificial intelligence and its applications in modern technology",
+      date: "2024-03-01",
+      time: "11:00 AM",
+      venue: "Engineering Hall A",
+      type: "academic",
+      status: "open",
+      registered: false,
+      capacity: 150,
+      registered_count: 89,
+      registration_fee: 300,
+      organizer: "Prof. Michael Chen"
     }
-  ];
+  ]);
 
   const myRegistrations = upcomingEvents.filter(event => event.registered);
 
@@ -84,6 +108,22 @@ export const StudentDashboard = () => {
     const matchesFilter = filterType === 'all' || event.type === filterType;
     return matchesSearch && matchesFilter;
   });
+
+  const handleEventClick = (event: any) => {
+    setSelectedEvent(event);
+    setShowRegistrationModal(true);
+  };
+
+  const handleRegistrationSuccess = () => {
+    // Update the event in the local state
+    setUpcomingEvents(prev => 
+      prev.map(event => 
+        event.id === selectedEvent?.id 
+          ? { ...event, registered: true, registered_count: event.registered_count + 1 }
+          : event
+      )
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -201,7 +241,7 @@ export const StudentDashboard = () => {
                 {/* Events List */}
                 <div className="space-y-4">
                   {filteredEvents.map((event) => (
-                    <Card key={event.id} className="hover:shadow-md transition-shadow">
+                    <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleEventClick(event)}>
                       <CardContent className="p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
@@ -233,6 +273,13 @@ export const StudentDashboard = () => {
                                 {event.registered_count}/{event.capacity}
                               </div>
                             </div>
+                            {event.registration_fee > 0 && (
+                              <div className="mt-2">
+                                <Badge variant="outline" className="text-green-600 border-green-200">
+                                  ₦{event.registration_fee.toLocaleString()}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-col gap-2">
                             {event.registered ? (
@@ -240,8 +287,11 @@ export const StudentDashboard = () => {
                                 Registered
                               </Badge>
                             ) : (
-                              <Button size="sm">
-                                Register
+                              <Button size="sm" onClick={(e) => {
+                                e.stopPropagation();
+                                handleEventClick(event);
+                              }}>
+                                View Details
                               </Button>
                             )}
                           </div>
@@ -324,6 +374,14 @@ export const StudentDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Registration Modal */}
+      <EventRegistrationModal
+        event={selectedEvent}
+        open={showRegistrationModal}
+        onOpenChange={setShowRegistrationModal}
+        onRegistrationSuccess={handleRegistrationSuccess}
+      />
     </div>
   );
 };

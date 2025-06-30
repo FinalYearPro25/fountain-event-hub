@@ -17,12 +17,23 @@ export default function Dashboard() {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return <Navigate to="/" replace />;
   }
 
+  // Wait for profile to load before rendering dashboard
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   // Route based on user role
-  switch (profile.role) {
+  const userRole = profile.role || 'student';
+  
+  switch (userRole) {
     case 'super_admin':
     case 'senate_member':
       return <AdminDashboard />;
