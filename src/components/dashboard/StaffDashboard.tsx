@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -107,7 +106,6 @@ export const StaffDashboard = () => {
   if (showCreateForm) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
@@ -139,7 +137,6 @@ export const StaffDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -317,7 +314,7 @@ export const StaffDashboard = () => {
                 <h2 className="text-2xl font-bold text-gray-900">My Events</h2>
                 <p className="text-gray-600 mt-1">Manage all your organized events</p>
               </div>
-              <Button>
+              <Button onClick={() => setShowCreateForm(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Event
               </Button>

@@ -1,400 +1,174 @@
-import { useState, useEffect } from "react";
-import { useAuthContext } from "@/components/auth/AuthProvider";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Calendar,
-  Users,
-  MapPin,
-  Clock,
-  Star,
-  Plus,
-  Search,
-  Filter,
-  BookOpen,
-  Award,
-  Bell,
-  Edit,
-  FileText,
-  Download,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { EventRegistrationModal } from "./EventRegistrationModal";
-// import ProfileEditModal from './ProfileEditModal';
-import { supabase } from "@/integrations/supabase/client";
-// import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-// import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
-// import "react-big-calendar/lib/css/react-big-calendar.css";
-// const localizer = dateFnsLocalizer({
-//   format,
-//   parse,
-//   startOfWeek,
-//   getDay,
-//   locales: {},
-// });
 
-const locales = {
-  "en-US": require("date-fns/locale/en-US"),
-};
+import { useState } from 'react';
+import { useAuthContext } from '@/components/auth/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EventRegistrationModal } from './EventRegistrationModal';
+import { CreateEvent } from './CreateEvent';
+import { 
+  GraduationCap, Calendar, Users, MapPin, Clock, 
+  Star, Trophy, BookOpen, Plus, Eye, Search, Filter
+} from 'lucide-react';
 
 export const StudentDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState("all");
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [paymentHistory, setPaymentHistory] = useState([]);
-  const [calendarEvents, setCalendarEvents] = useState([]);
-  const [academicEvents, setAcademicEvents] = useState([]);
-  const [blockedDates, setBlockedDates] = useState([]);
-  const [penalties, setPenalties] = useState([]);
-  const [reputation, setReputation] = useState({
-    noShows: 0,
-    total: 0,
-    blacklisted: false,
-  });
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from("event_registrations")
-        .select("*, event:events(title)")
-        .eq("user_id", user.id)
-        .not("payment_status", "is", null);
-      setPaymentHistory(data || []);
-    };
-    fetchPayments();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchCalendarEvents = async () => {
-      if (!user) return;
-      // Fetch user events
-      const { data: userEvents } = await supabase
-        .from("event_registrations")
-        .select("*, event:events(*)")
-        .eq("user_id", user.id);
-      // Fetch academic calendar (mock for now)
-      const academic = [
-        {
-          title: "Holiday: Independence Day",
-          start: "2024-10-01",
-          end: "2024-10-01",
-          type: "holiday",
-        },
-        {
-          title: "Exam Period",
-          start: "2024-11-10",
-          end: "2024-11-20",
-          type: "exam",
-        },
-      ];
-      setAcademicEvents(academic);
-      setBlockedDates(
-        academic.map((e) => ({
-          start: new Date(e.start),
-          end: new Date(e.end),
-        }))
-      );
-      // Combine events
-      const events = [
-        ...userEvents.map((e) => ({
-          title: e.event?.title,
-          start: new Date(e.event?.start_date),
-          end: new Date(e.event?.end_date),
-          type: "user",
-        })),
-        ...academic.map((e) => ({
-          title: e.title,
-          start: new Date(e.start),
-          end: new Date(e.end),
-          type: e.type,
-        })),
-      ];
-      setCalendarEvents(events);
-    };
-    fetchCalendarEvents();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchPenalties = async () => {
-      if (!user) return;
-      // Fetch all absences with penalty due
-      const { data } = await supabase
-        .from("event_registrations")
-        .select("*, event:events(title)")
-        .eq("user_id", user.id)
-        .eq("attendance_status", "absent");
-      setPenalties(
-        (data || []).map((p) => ({
-          ...p,
-          penalty: 1000, // For demo: fixed penalty
-          paid: "penalty_paid" in p ? p.penalty_paid : false,
-        }))
-      );
-      // Calculate reputation
-      const { count: total } = await supabase
-        .from("event_registrations")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      const { count: noShows } = await supabase
-        .from("event_registrations")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("attendance_status", "absent");
-      // Mock blacklist: if more than 3 no-shows
-      setReputation({
-        noShows: noShows || 0,
-        total: total || 0,
-        blacklisted: (noShows || 0) >= 3,
-      });
-    };
-    fetchPenalties();
-  }, [user]);
-
-  const downloadInvoice = (payment) => {
-    // For demo: just open a printable window. In production, generate a PDF.
-    const win = window.open("", "_blank");
-    win.document.write(`<h2>Invoice for ${payment.event?.title}</h2>`);
-    win.document.write(`<p>Amount: ₦${payment.registration_fee}</p>`);
-    win.document.write(`<p>Status: ${payment.payment_status}</p>`);
-    win.document.write(`<p>Date: ${payment.created_at}</p>`);
-    win.print();
+  // Mock data for demonstration
+  const studentStats = {
+    eventsAttended: 15,
+    upcomingEvents: 3,
+    certificatesEarned: 8,
+    totalPoints: 1250
   };
 
-  // Mock data for events
-  const [upcomingEvents, setUpcomingEvents] = useState([
+  const upcomingEvents = [
     {
       id: 1,
       title: "Tech Innovation Summit 2024",
-      description:
-        "Annual technology conference featuring industry leaders and startup showcases",
+      description: "Join industry leaders discussing the future of technology and innovation in Nigeria.",
       date: "2024-02-15",
-      time: "09:00 AM",
-      venue: "Main Auditorium",
-      type: "conference",
-      status: "open",
-      registered: false,
-      capacity: 300,
-      registered_count: 150,
-      registration_fee: 500,
+      time: "10:00 AM",
+      venue: "Amina Namadi Sambo Hall",
       organizer: "Dr. Sarah Johnson",
+      capacity: 500,
+      registered: 342,
+      fee: 2500,
+      category: "Technology",
+      image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop"
     },
     {
       id: 2,
-      title: "Cultural Festival",
-      description:
-        "Celebrate diversity with music, dance, and food from around the world",
+      title: "Leadership Workshop",
+      description: "Develop essential leadership skills for your professional journey.",
       date: "2024-02-20",
-      time: "02:00 PM",
-      venue: "Campus Ground",
-      type: "cultural",
-      status: "open",
-      registered: true,
-      capacity: 500,
-      registered_count: 320,
-      registration_fee: 0,
-      organizer: "Student Affairs",
+      time: "2:00 PM",
+      venue: "College of Management Building",
+      organizer: "Prof. Michael Chen",
+      capacity: 100,
+      registered: 78,
+      fee: 0,
+      category: "Professional Development",
+      image: "https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop"
     },
     {
       id: 3,
-      title: "Career Development Workshop",
-      description:
-        "Professional skills and career guidance session with industry experts",
+      title: "Cultural Festival",
+      description: "Celebrate diversity through music, dance, and traditional performances.",
       date: "2024-02-25",
-      time: "10:00 AM",
-      venue: "Business Hall",
-      type: "workshop",
-      status: "open",
-      registered: false,
-      capacity: 100,
-      registered_count: 65,
-      registration_fee: 200,
-      organizer: "Career Services",
+      time: "6:00 PM",
+      venue: "Eti-Osa Campus",
+      organizer: "Cultural Affairs Office",
+      capacity: 300,
+      registered: 156,
+      fee: 1000,
+      category: "Cultural",
+      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop"
+    }
+  ];
+
+  const myRegistrations = [
+    {
+      id: 1,
+      title: "Career Development Seminar",
+      date: "2024-01-15",
+      status: "attended",
+      certificate: true,
+      rating: 4.5
     },
     {
-      id: 4,
-      title: "AI and Machine Learning Seminar",
-      description:
-        "Introduction to artificial intelligence and its applications in modern technology",
-      date: "2024-03-01",
-      time: "11:00 AM",
-      venue: "Engineering Hall A",
-      type: "academic",
-      status: "open",
-      registered: false,
-      capacity: 150,
-      registered_count: 89,
-      registration_fee: 300,
-      organizer: "Prof. Michael Chen",
-    },
-  ]);
-
-  const myRegistrations = upcomingEvents.filter((event) => event.registered);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-green-100 text-green-800";
-      case "closed":
-        return "bg-red-100 text-red-800";
-      case "full":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      id: 2,
+      title: "Research Methodology Workshop",
+      date: "2024-01-20",
+      status: "registered",
+      certificate: false,
+      rating: null
     }
-  };
+  ];
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "academic":
-        return "bg-blue-100 text-blue-800";
-      case "cultural":
-        return "bg-purple-100 text-purple-800";
-      case "sports":
-        return "bg-orange-100 text-orange-800";
-      case "conference":
-        return "bg-indigo-100 text-indigo-800";
-      case "workshop":
-        return "bg-teal-100 text-teal-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  const achievements = [
+    { title: "Active Participant", description: "Attended 10+ events", icon: Trophy, color: "text-yellow-600" },
+    { title: "Knowledge Seeker", description: "Completed 5 workshops", icon: BookOpen, color: "text-blue-600" },
+    { title: "Community Leader", description: "Organized 2 events", icon: Users, color: "text-green-600" }
+  ];
 
-  const filteredEvents = upcomingEvents.filter((event) => {
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterType === "all" || event.type === filterType;
-    return matchesSearch && matchesFilter;
-  });
-
-  const handleEventClick = (event: any) => {
+  const handleRegisterForEvent = (event) => {
     setSelectedEvent(event);
     setShowRegistrationModal(true);
   };
 
-  const handleRegistrationSuccess = () => {
-    // Update the event in the local state
-    setUpcomingEvents((prev) =>
-      prev.map((event) =>
-        event.id === selectedEvent?.id
-          ? {
-              ...event,
-              registered: true,
-              registered_count: event.registered_count + 1,
-            }
-          : event
-      )
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'attended': return 'bg-green-100 text-green-800';
+      case 'registered': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (showCreateEvent) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <GraduationCap className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Student Dashboard</h1>
+                  <p className="text-sm text-gray-500">Event Discovery & Participation</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  {profile?.role?.replace('_', ' ').toUpperCase()}
+                </Badge>
+                <Button variant="outline" onClick={signOut}>
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <CreateEvent 
+            onBack={() => setShowCreateEvent(false)}
+            onSuccess={() => {
+              setShowCreateEvent(false);
+              setActiveTab('events');
+            }}
+          />
+        </div>
+      </div>
     );
-  };
-
-  // Comment out handleExportICS and handleExportGoogle functions that use 'format' from 'date-fns'
-  // const handleExportICS = () => {
-  //   // For demo: generate a simple .ics file for all user events
-  //   let ics = "BEGIN:VCALENDAR\nVERSION:2.0\n";
-  //   calendarEvents
-  //     .filter((e) => e.type === "user")
-  //     .forEach((e) => {
-  //       ics += `BEGIN:VEVENT\nSUMMARY:${e.title}\nDTSTART:${format(e.start, "yyyyMMdd")}\nDTEND:${format(e.end, "yyyyMMdd")}\nEND:VEVENT\n`;
-  //     });
-  //   ics += "END:VCALENDAR";
-  //   const blob = new Blob([ics], { type: "text/calendar" });
-  //   const url = URL.createObjectURL(blob);
-  //   const a = document.createElement("a");
-  //   a.href = url;
-  //   a.download = "events.ics";
-  //   a.click();
-  // };
-
-  // const handleExportGoogle = () => {
-  //   // For demo: open Google Calendar event creation for the first event
-  //   const e = calendarEvents.find((e) => e.type === "user");
-  //   if (!e) return;
-  //   // ...
-  // };
-
-  const handlePayPenalty = (penalty) => {
-    // For demo: mark as paid
-    setPenalties(
-      penalties.map((p) => (p.id === penalty.id ? { ...p, paid: true } : p))
-    );
-    // In production: integrate payment and update DB
-  };
-
-  // Mock certificates data
-  const certificates = [
-    {
-      id: 1,
-      event: "Tech Symposium 2024",
-      date: "2024-06-15",
-      url: "#", // Placeholder for download
-    },
-    {
-      id: 2,
-      event: "Leadership Workshop",
-      date: "2024-05-10",
-      url: "#",
-    },
-  ];
-
-  const handleDownload = (cert) => {
-    // For now, just alert. Later, trigger PDF download.
-    alert(`Download certificate for ${cert.event}`);
-  };
-
-  // Recommended for You (AI-powered, mock)
-  const getRecommendedEvents = () => {
-    // Recommend events of the same type as those the user is registered for
-    const registeredTypes = new Set(
-      upcomingEvents.filter((e) => e.registered).map((e) => e.type)
-    );
-    return upcomingEvents
-      .filter((e) => !e.registered && registeredTypes.has(e.type))
-      .slice(0, 2);
-  };
-  const recommendedEvents = getRecommendedEvents();
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-white" />
+                <GraduationCap className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Student Dashboard
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Welcome back, {profile?.full_name}
-                </p>
+                <h1 className="text-xl font-bold text-gray-900">Student Dashboard</h1>
+                <p className="text-sm text-gray-500">Event Discovery & Participation</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                {profile?.role?.replace('_', ' ').toUpperCase()}
+              </Badge>
               <Button variant="outline" onClick={signOut}>
                 Sign Out
               </Button>
@@ -404,501 +178,308 @@ export const StudentDashboard = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Recommended for You Section */}
-        {recommendedEvents.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Recommended for You</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {recommendedEvents.map((event) => (
-                <Card key={event.id} className="border-blue-200">
-                  <CardContent className="p-4 flex flex-col gap-2">
-                    <div className="font-medium text-lg">{event.title}</div>
-                    <div className="text-sm text-gray-500">
-                      {event.date} • {event.venue}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="events">Discover Events</TabsTrigger>
+            <TabsTrigger value="registrations">My Events</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="create">Create Event</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Events Attended</p>
+                      <p className="text-2xl font-bold text-gray-900">{studentStats.eventsAttended}</p>
                     </div>
-                    <div className="text-xs text-gray-400 mb-2">
-                      Type: {event.type}
+                    <Calendar className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Upcoming Events</p>
+                      <p className="text-2xl font-bold text-gray-900">{studentStats.upcomingEvents}</p>
                     </div>
-                    <Button size="sm" onClick={() => handleEventClick(event)}>
-                      View & Register
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                    <Clock className="h-8 w-8 text-yellow-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Certificates</p>
+                      <p className="text-2xl font-bold text-gray-900">{studentStats.certificatesEarned}</p>
+                    </div>
+                    <Trophy className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Points</p>
+                      <p className="text-2xl font-bold text-gray-900">{studentStats.totalPoints}</p>
+                    </div>
+                    <Star className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Events Registered
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {myRegistrations.length}
-                  </p>
-                </div>
-                <Users className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Events Attended
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">12</p>
-                </div>
-                <Calendar className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Certificates Earned
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">8</p>
-                </div>
-                <Award className="h-8 w-8 text-yellow-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Active Events
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {upcomingEvents.length}
-                  </p>
-                </div>
-                <Star className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Search and Filters */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Discover Events</CardTitle>
-                <CardDescription>
-                  Find and register for upcoming campus events
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Search events..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-full sm:w-48">
-                      <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Events</SelectItem>
-                      <SelectItem value="academic">Academic</SelectItem>
-                      <SelectItem value="cultural">Cultural</SelectItem>
-                      <SelectItem value="sports">Sports</SelectItem>
-                      <SelectItem value="conference">Conference</SelectItem>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Events List */}
-                <div className="space-y-4">
-                  {filteredEvents.map((event) => (
-                    <Card
-                      key={event.id}
-                      className="hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handleEventClick(event)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {event.title}
-                              </h3>
-                              <Badge className={getTypeColor(event.type)}>
-                                {event.type}
-                              </Badge>
-                              <Badge className={getStatusColor(event.status)}>
-                                {event.status}
-                              </Badge>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Events</CardTitle>
+                  <CardDescription>Events you might be interested in</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {upcomingEvents.slice(0, 3).map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{event.title}</h4>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {event.date}
                             </div>
-                            <p className="text-gray-600 mb-3">
-                              {event.description}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {event.date}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {event.time}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-4 w-4" />
-                                {event.venue}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                {event.registered_count}/{event.capacity}
-                              </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {event.venue}
                             </div>
-                            {event.registration_fee > 0 && (
-                              <div className="mt-2">
-                                <Badge
-                                  variant="outline"
-                                  className="text-green-600 border-green-200"
-                                >
-                                  ₦{event.registration_fee.toLocaleString()}
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            {event.registered ? (
-                              <Badge
-                                variant="secondary"
-                                className="bg-green-100 text-green-800"
-                              >
-                                Registered
-                              </Badge>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEventClick(event);
-                                }}
-                              >
-                                View Details
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {event.registered}/{event.capacity}
+                            </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* My Registrations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>My Registrations</CardTitle>
-                <CardDescription>Events you're registered for</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {myRegistrations.length > 0 ? (
-                  <div className="space-y-3">
-                    {myRegistrations.map((event) => (
-                      <div key={event.id} className="p-3 border rounded-lg">
-                        <h4 className="font-medium text-gray-900 mb-1">
-                          {event.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Calendar className="h-3 w-3" />
-                          {event.date}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <MapPin className="h-3 w-3" />
-                          {event.venue}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No registrations yet
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Payment History */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment History</CardTitle>
-                <CardDescription>
-                  Your event payments and invoices
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {paymentHistory.length > 0 ? (
-                  <div className="space-y-3">
-                    {paymentHistory.map((payment) => (
-                      <div
-                        key={payment.id}
-                        className="p-3 border rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                      >
-                        <div>
-                          <div className="font-medium">
-                            {payment.event?.title}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ₦{payment.registration_fee} •{" "}
-                            {payment.payment_status} • {payment.created_at}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => downloadInvoice(payment)}
-                        >
-                          Download Invoice
+                        <Button size="sm" onClick={() => handleRegisterForEvent(event)}>
+                          Register
                         </Button>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No payments yet
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
-                  <Search className="h-4 w-4 mr-2" />
-                  Browse All Events
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Award className="h-4 w-4 mr-2" />
-                  View Certificates
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Notification Settings
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Profile Summary */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Profile Summary</CardTitle>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowProfileEdit(true)}
-                >
-                  <Edit className="h-4 w-4 mr-1" /> Edit
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Name:</span>{" "}
-                    {profile?.full_name}
-                  </div>
-                  <div>
-                    <span className="font-medium">Email:</span> {profile?.email}
-                  </div>
-                  <div>
-                    <span className="font-medium">Student ID:</span>{" "}
-                    {profile?.student_id}
-                  </div>
-                  <div>
-                    <span className="font-medium">College:</span>{" "}
-                    {profile?.college_id || "Not specified"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Year:</span>{" "}
-                    {profile?.year_of_study
-                      ? `Year ${profile.year_of_study}`
-                      : "Not specified"}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Calendar View */}
-            <Card>
-              <CardHeader>
-                <CardTitle>My Calendar</CardTitle>
-                <CardDescription>
-                  Your events and academic calendar
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-2 flex gap-2">
-                  {/* <Button size="sm" variant="outline" onClick={handleExportICS}>
-                    Export .ics
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportGoogle}
-                  >
-                    Export to Google Calendar
-                  </Button> */}
-                </div>
-                {/* <BigCalendar
-                  localizer={localizer}
-                  events={calendarEvents}
-                  startAccessor="start"
-                  endAccessor="end"
-                  style={{ height: 400 }}
-                  eventPropGetter={(event) => {
-                    if (event.type === "holiday")
-                      return {
-                        style: { backgroundColor: "#fbbf24", color: "#fff" },
-                      };
-                    if (event.type === "exam")
-                      return {
-                        style: { backgroundColor: "#ef4444", color: "#fff" },
-                      };
-                    if (event.type === "user")
-                      return {
-                        style: { backgroundColor: "#2563eb", color: "#fff" },
-                      };
-                    return {};
-                  }}
-                /> */}
-              </CardContent>
-            </Card>
-
-            {/* Penalty & No-Show Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Penalty & No-Show Management</CardTitle>
-                <CardDescription>
-                  Your attendance reputation and penalties
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-2">
-                  <span className="font-medium">Reputation Score:</span>{" "}
-                  {reputation.total > 0
-                    ? `${reputation.noShows} no-shows / ${reputation.total} events`
-                    : "N/A"}
-                  {reputation.blacklisted && (
-                    <span className="ml-2 text-red-600 font-bold">
-                      You are blacklisted due to frequent no-shows.
-                    </span>
-                  )}
-                </div>
-                {penalties.length > 0 ? (
-                  <div className="space-y-3">
-                    {penalties.map((penalty) => (
-                      <div
-                        key={penalty.id}
-                        className="p-3 border rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                      >
-                        <div>
-                          <div className="font-medium">
-                            {penalty.event?.title}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Penalty: ₦{penalty.penalty} • Status:{" "}
-                            {penalty.paid ? "Paid" : "Unpaid"}
-                          </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Achievements</CardTitle>
+                  <CardDescription>Your latest accomplishments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {achievements.map((achievement, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                        <achievement.icon className={`h-6 w-6 ${achievement.color}`} />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{achievement.title}</h4>
+                          <p className="text-sm text-gray-500">{achievement.description}</p>
                         </div>
-                        {!penalty.paid && !reputation.blacklisted && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handlePayPenalty(penalty)}
-                          >
-                            Pay Penalty
-                          </Button>
-                        )}
-                        {penalty.paid && (
-                          <span className="text-green-600 text-xs">Paid</span>
-                        )}
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No penalties due
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-            {/* My Certificates Section */}
-            <div className="mt-10">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Award className="h-5 w-5 text-yellow-500" /> My Certificates
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {certificates.map((cert) => (
-                  <Card key={cert.id}>
-                    <CardContent className="flex flex-col md:flex-row items-center justify-between p-4">
-                      <div>
-                        <div className="font-medium text-lg">{cert.event}</div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(cert.date).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-2 md:mt-0"
-                        onClick={() => handleDownload(cert)}
-                      >
-                        <Download className="h-4 w-4 mr-1" /> Download
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+          <TabsContent value="events" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Discover Events</h2>
+                <p className="text-gray-600 mt-1">Find and register for campus events</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcomingEvents.map((event) => (
+                <Card key={event.id} className="overflow-hidden">
+                  <div className="aspect-video bg-gray-200">
+                    <img 
+                      src={event.image} 
+                      alt={event.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary">{event.category}</Badge>
+                      <span className="text-sm font-medium text-green-600">
+                        {event.fee === 0 ? 'Free' : `₦${event.fee.toLocaleString()}`}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">{event.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
+                    
+                    <div className="space-y-2 text-sm text-gray-500 mb-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{event.date} at {event.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        <span>{event.venue}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>{event.registered}/{event.capacity} registered</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1" 
+                        onClick={() => handleRegisterForEvent(event)}
+                      >
+                        Register Now
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="registrations" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">My Events</h2>
+              <p className="text-gray-600 mt-1">Track your event registrations and attendance</p>
+            </div>
+
+            <div className="space-y-4">
+              {myRegistrations.map((registration) => (
+                <Card key={registration.id}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{registration.title}</h3>
+                          <Badge className={getStatusColor(registration.status)}>
+                            {registration.status}
+                          </Badge>
+                          {registration.certificate && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-800">
+                              Certificate Available
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {registration.date}
+                          </div>
+                          {registration.rating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              {registration.rating}/5
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">
+                          View Details
+                        </Button>
+                        {registration.certificate && (
+                          <Button size="sm">
+                            Download Certificate
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="achievements" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Achievements</h2>
+              <p className="text-gray-600 mt-1">Your accomplishments and certificates</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {achievements.map((achievement, index) => (
+                <Card key={index}>
+                  <CardContent className="p-6 text-center">
+                    <achievement.icon className={`h-12 w-12 mx-auto mb-4 ${achievement.color}`} />
+                    <h3 className="font-semibold text-lg mb-2">{achievement.title}</h3>
+                    <p className="text-gray-600 text-sm">{achievement.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="create" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Event</CardTitle>
+                <CardDescription>Organize your own campus event</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12">
+                  <Calendar className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to Create an Event?</h3>
+                  <p className="text-gray-600 mb-6">
+                    Students can also organize events! Create your own event and get it approved by the administration.
+                  </p>
+                  <Button size="lg" onClick={() => setShowCreateEvent(true)}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Start Creating Event
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Registration Modal */}
-      <EventRegistrationModal
-        event={selectedEvent}
-        open={showRegistrationModal}
-        onOpenChange={setShowRegistrationModal}
-        onRegistrationSuccess={handleRegistrationSuccess}
-      />
-      {/* Profile Edit Modal */}
-      {/* <ProfileEditModal
-        open={showProfileEdit}
-        onOpenChange={setShowProfileEdit}
-        profile={profile}
-      /> */}
+      {/* Event Registration Modal */}
+      {showRegistrationModal && (
+        <EventRegistrationModal
+          event={selectedEvent}
+          onClose={() => {
+            setShowRegistrationModal(false);
+            setSelectedEvent(null);
+          }}
+          onRegister={(eventId) => {
+            // Handle registration logic
+            console.log('Registered for event:', eventId);
+            setShowRegistrationModal(false);
+            setSelectedEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 };

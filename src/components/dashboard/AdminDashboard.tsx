@@ -1,224 +1,127 @@
-import { useState, useEffect } from "react";
-import { useAuthContext } from "@/components/auth/AuthProvider";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Users,
-  Calendar,
-  MapPin,
-  Settings,
-  BarChart3,
-  Shield,
-  Plus,
-  Eye,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  PieChart,
-  FileText,
-} from "lucide-react";
-import { ApprovalQueue } from "./ApprovalQueue";
-import { CertificateManager } from "./CertificateManager";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
+
+import { useState } from 'react';
+import { useAuthContext } from '@/components/auth/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CreateEvent } from './CreateEvent';
+import { 
+  Shield, Users, Calendar, Settings, BarChart3, 
+  CheckCircle, XCircle, Clock, Plus, Eye, Edit,
+  UserPlus, Building, MapPin, AlertTriangle
+} from 'lucide-react';
 
 export const AdminDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [analytics, setAnalytics] = useState({
-    eventAttendance: 0,
-    venueUtilization: 0,
-    financialSummary: 0,
-    engagement: 0,
-  });
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
-  // Mock data
-  const systemStats = {
-    totalUsers: 2456,
+  // Mock data for demonstration
+  const adminStats = {
+    totalUsers: 2847,
     activeEvents: 23,
-    pendingApprovals: 8,
+    pendingApprovals: 12,
     totalVenues: 15,
-    thisMonthEvents: 45,
-    registrations: 1234,
+    monthlyRegistrations: 456,
+    systemUptime: 99.8
   };
 
   const pendingApprovals = [
     {
       id: 1,
-      title: "Tech Innovation Summit 2024",
-      organizer: "Computer Science Society",
-      type: "conference",
-      requestedDate: "2024-02-15",
-      venue: "Main Auditorium",
-      status: "pending_dean",
-      priority: "high",
+      title: "Tech Innovation Summit",
+      organizer: "Dr. Sarah Johnson",
+      date: "2024-02-15",
+      type: "Conference",
+      status: "pending_approval",
+      priority: "high"
     },
     {
       id: 2,
       title: "Cultural Festival",
-      organizer: "Cultural Committee",
-      type: "cultural",
-      requestedDate: "2024-02-20",
-      venue: "Campus Ground",
-      status: "pending_senate",
-      priority: "medium",
-    },
+      organizer: "Student Affairs",
+      date: "2024-02-20",
+      type: "Cultural",
+      status: "pending_approval",
+      priority: "normal"
+    }
   ];
 
-  const recentEvents = [
-    {
-      id: 1,
-      title: "Career Development Workshop",
-      status: "completed",
-      attendance: 85,
-      capacity: 100,
-      date: "2024-01-15",
-      rating: 4.5,
-    },
-    {
-      id: 2,
-      title: "Sports Day",
-      status: "active",
-      attendance: 245,
-      capacity: 300,
-      date: "2024-01-20",
-      rating: 4.8,
-    },
+  const recentActivities = [
+    { action: "Event approved", details: "Leadership Workshop by Prof. Chen", time: "2 hours ago" },
+    { action: "New user registered", details: "Student ID: 2024/CS/001", time: "4 hours ago" },
+    { action: "Venue booking", details: "Amina Namadi Sambo Hall reserved", time: "6 hours ago" },
+    { action: "Event cancelled", details: "Due to venue unavailability", time: "1 day ago" }
   ];
 
-  const systemUsers = [
-    {
-      id: 1,
-      name: "Dr. Sarah Johnson",
-      email: "sarah.johnson@fountain.edu.ng",
-      role: "dean",
-      college: "College of Engineering",
-      status: "active",
-      lastLogin: "2024-01-18",
-    },
-    {
-      id: 2,
-      name: "Prof. Michael Chen",
-      email: "michael.chen@fountain.edu.ng",
-      role: "staff",
-      college: "College of Sciences",
-      status: "active",
-      lastLogin: "2024-01-17",
-    },
+  const systemMetrics = [
+    { label: "Total Events Created", value: 156, change: "+12%" },
+    { label: "Active Registrations", value: 1234, change: "+8%" },
+    { label: "Venue Utilization", value: "78%", change: "+5%" },
+    { label: "User Satisfaction", value: "4.7/5", change: "+0.2" }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "completed":
-        return "bg-blue-100 text-blue-800";
-      case "rejected":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending_approval': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "low":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case 'high': return 'text-red-600';
+      case 'normal': return 'text-blue-600';
+      case 'low': return 'text-green-600';
+      default: return 'text-gray-600';
     }
   };
 
-  useEffect(() => {
-    // For demo: mock analytics
-    setAnalytics({
-      eventAttendance: 87, // %
-      venueUtilization: 72, // %
-      financialSummary: 1200000, // ₦
-      engagement: 3400, // users
-    });
-  }, []);
+  if (showCreateEvent) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-red-600 to-pink-600 rounded-lg flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+                  <p className="text-sm text-gray-500">System Administration & Management</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  {profile?.role?.replace('_', ' ').toUpperCase()}
+                </Badge>
+                <Button variant="outline" onClick={signOut}>
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
 
-  const handleExportReport = () => {
-    // For demo: just open a printable window
-    const win = window.open("", "_blank");
-    win.document.write("<h2>Analytics Report</h2>");
-    win.document.write(
-      `<p>Event Attendance: ${analytics.eventAttendance}%</p>`
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <CreateEvent 
+            onBack={() => setShowCreateEvent(false)}
+            onSuccess={() => {
+              setShowCreateEvent(false);
+              setActiveTab('events');
+            }}
+          />
+        </div>
+      </div>
     );
-    win.document.write(
-      `<p>Venue Utilization: ${analytics.venueUtilization}%</p>`
-    );
-    win.document.write(
-      `<p>Financial Summary: ₦${analytics.financialSummary}</p>`
-    );
-    win.document.write(`<p>User Engagement: ${analytics.engagement}</p>`);
-    win.print();
-  };
-
-  // Mock analytics chart data
-  const attendanceData = [
-    { month: "Jan", attendance: 60 },
-    { month: "Feb", attendance: 75 },
-    { month: "Mar", attendance: 80 },
-    { month: "Apr", attendance: 90 },
-    { month: "May", attendance: 87 },
-  ];
-  const venueData = [
-    { venue: "Auditorium", utilization: 80 },
-    { venue: "Hall A", utilization: 65 },
-    { venue: "Hall B", utilization: 72 },
-    { venue: "Sports Center", utilization: 55 },
-  ];
-  const financeData = [
-    { month: "Jan", revenue: 200000 },
-    { month: "Feb", revenue: 350000 },
-    { month: "Mar", revenue: 400000 },
-    { month: "Apr", revenue: 300000 },
-    { month: "May", revenue: 250000 },
-  ];
-  const engagementData = [
-    { name: "Students", value: 2200 },
-    { name: "Staff", value: 800 },
-    { name: "Outsiders", value: 400 },
-  ];
-  const COLORS = ["#2563eb", "#22c55e", "#facc15"];
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -227,17 +130,13 @@ export const AdminDashboard = () => {
                 <Shield className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Admin Dashboard
-                </h1>
-                <p className="text-sm text-gray-500">
-                  System Administration Panel
-                </p>
+                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-sm text-gray-500">System Administration & Management</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary" className="bg-red-100 text-red-800">
-                {profile?.role?.toUpperCase()}
+                {profile?.role?.replace('_', ' ').toUpperCase()}
               </Badge>
               <Button variant="outline" onClick={signOut}>
                 Sign Out
@@ -248,33 +147,25 @@ export const AdminDashboard = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-6"
-        >
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="approvals">Approvals</TabsTrigger>
-            <TabsTrigger value="certificates">Certificates</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
+            <TabsTrigger value="venues">Venues</TabsTrigger>
+            <TabsTrigger value="create">Create Event</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
+            {/* System Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Total Users
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {systemStats.totalUsers.toLocaleString()}
-                      </p>
+                      <p className="text-sm font-medium text-gray-600">Total Users</p>
+                      <p className="text-2xl font-bold text-gray-900">{adminStats.totalUsers.toLocaleString()}</p>
                     </div>
                     <Users className="h-8 w-8 text-blue-600" />
                   </div>
@@ -285,12 +176,8 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Active Events
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {systemStats.activeEvents}
-                      </p>
+                      <p className="text-sm font-medium text-gray-600">Active Events</p>
+                      <p className="text-2xl font-bold text-gray-900">{adminStats.activeEvents}</p>
                     </div>
                     <Calendar className="h-8 w-8 text-green-600" />
                   </div>
@@ -301,12 +188,8 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Pending Approvals
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {systemStats.pendingApprovals}
-                      </p>
+                      <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
+                      <p className="text-2xl font-bold text-gray-900">{adminStats.pendingApprovals}</p>
                     </div>
                     <Clock className="h-8 w-8 text-yellow-600" />
                   </div>
@@ -317,47 +200,33 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
-                        Total Venues
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {systemStats.totalVenues}
-                      </p>
+                      <p className="text-sm font-medium text-gray-600">System Uptime</p>
+                      <p className="text-2xl font-bold text-gray-900">{adminStats.systemUptime}%</p>
                     </div>
-                    <MapPin className="h-8 w-8 text-purple-600" />
+                    <BarChart3 className="h-8 w-8 text-purple-600" />
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Recent Activity */}
+            {/* Quick Actions and Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Events</CardTitle>
-                  <CardDescription>
-                    Latest event activities and performance
-                  </CardDescription>
+                  <CardTitle>System Metrics</CardTitle>
+                  <CardDescription>Key performance indicators</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">
-                            {event.title}
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            {event.attendance}/{event.capacity} attendees •
-                            Rating: {event.rating}/5
-                          </p>
+                    {systemMetrics.map((metric, index) => (
+                      <div key={index} className="flex justify-between items-center p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">{metric.label}</p>
+                          <p className="text-sm text-gray-500">{metric.change} from last month</p>
                         </div>
-                        <Badge className={getStatusColor(event.status)}>
-                          {event.status}
-                        </Badge>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-gray-900">{metric.value}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -366,39 +235,21 @@ export const AdminDashboard = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>System Health</CardTitle>
-                  <CardDescription>
-                    Platform performance and status
-                  </CardDescription>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Latest system activities</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        Database Status
-                      </span>
-                      <Badge className="bg-green-100 text-green-800">
-                        Online
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Email Service</span>
-                      <Badge className="bg-green-100 text-green-800">
-                        Active
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Storage Usage</span>
-                      <span className="text-sm text-gray-600">
-                        68% of 100GB
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        API Response Time
-                      </span>
-                      <span className="text-sm text-gray-600">142ms avg</span>
-                    </div>
+                    {recentActivities.map((activity, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 border rounded-lg">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{activity.action}</p>
+                          <p className="text-sm text-gray-600">{activity.details}</p>
+                          <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -406,462 +257,192 @@ export const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="approvals" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Event Approvals</CardTitle>
-                    <CardDescription>
-                      Review and approve pending event requests
-                    </CardDescription>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className="bg-yellow-100 text-yellow-800"
-                  >
-                    {pendingApprovals.length} Pending
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {pendingApprovals.map((approval) => (
-                    <Card
-                      key={approval.id}
-                      className="border-l-4 border-l-yellow-400"
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {approval.title}
-                              </h3>
-                              <Badge
-                                className={getPriorityColor(approval.priority)}
-                              >
-                                {approval.priority} priority
-                              </Badge>
-                            </div>
-                            <p className="text-gray-600 mb-3">
-                              Organized by: {approval.organizer}
-                            </p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
-                              <div>
-                                <span className="font-medium">Type:</span>{" "}
-                                {approval.type}
-                              </div>
-                              <div>
-                                <span className="font-medium">Date:</span>{" "}
-                                {approval.requestedDate}
-                              </div>
-                              <div>
-                                <span className="font-medium">Venue:</span>{" "}
-                                {approval.venue}
-                              </div>
-                              <div>
-                                <span className="font-medium">Status:</span>{" "}
-                                {approval.status.replace("_", " ")}
-                              </div>
-                            </div>
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Event Approvals</h2>
+                <p className="text-gray-600 mt-1">Review and approve pending events</p>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline">
+                  Filter
+                </Button>
+                <Button size="sm" variant="outline">
+                  Sort
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {pendingApprovals.map((approval) => (
+                <Card key={approval.id}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{approval.title}</h3>
+                          <Badge className={getStatusColor(approval.status)}>
+                            {approval.status.replace('_', ' ')}
+                          </Badge>
+                          <AlertTriangle className={`h-4 w-4 ${getPriorityColor(approval.priority)}`} />
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                          <div>
+                            <span className="font-medium">Organizer:</span> {approval.organizer}
                           </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4 mr-1" />
-                              Review
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button size="sm" variant="destructive">
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
+                          <div>
+                            <span className="font-medium">Date:</span> {approval.date}
+                          </div>
+                          <div>
+                            <span className="font-medium">Type:</span> {approval.type}
+                          </div>
+                          <div>
+                            <span className="font-medium">Priority:</span> 
+                            <span className={`ml-1 ${getPriorityColor(approval.priority)}`}>
+                              {approval.priority}
+                            </span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="certificates">
-            <CertificateManager />
-          </TabsContent>
-
-          <TabsContent value="events" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Event Management</CardTitle>
-                    <CardDescription>
-                      Manage all campus events and activities
-                    </CardDescription>
-                  </div>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Event
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentEvents.map((event) => (
-                    <Card key={event.id}>
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {event.title}
-                              </h3>
-                              <Badge className={getStatusColor(event.status)}>
-                                {event.status}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
-                              <div>
-                                <span className="font-medium">Date:</span>{" "}
-                                {event.date}
-                              </div>
-                              <div>
-                                <span className="font-medium">Attendance:</span>{" "}
-                                {event.attendance}/{event.capacity}
-                              </div>
-                              <div>
-                                <span className="font-medium">Rating:</span>{" "}
-                                {event.rating}/5.0
-                              </div>
-                              <div>
-                                <span className="font-medium">Status:</span>{" "}
-                                {event.status}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <BarChart3 className="h-4 w-4 mr-1" />
-                              Analytics
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-4 w-4 mr-1" />
+                          Review
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-green-600">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600">
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+                <p className="text-gray-600 mt-1">Manage system users and their roles</p>
+              </div>
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            </div>
+
             <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>
-                      Manage user accounts and permissions
-                    </CardDescription>
-                  </div>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">User Management Interface</h3>
+                  <p className="text-gray-600 mb-6">
+                    Advanced user management features including role assignment, 
+                    account status management, and user analytics.
+                  </p>
                   <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add User
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configure User Settings
                   </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {systemUsers.map((user) => (
-                    <Card key={user.id}>
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {user.name}
-                              </h3>
-                              <Badge className={getStatusColor(user.status)}>
-                                {user.status}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
-                              <div>
-                                <span className="font-medium">Email:</span>{" "}
-                                {user.email}
-                              </div>
-                              <div>
-                                <span className="font-medium">Role:</span>{" "}
-                                {user.role}
-                              </div>
-                              <div>
-                                <span className="font-medium">College:</span>{" "}
-                                {user.college}
-                              </div>
-                              <div>
-                                <span className="font-medium">Last Login:</span>{" "}
-                                {user.lastLogin}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Settings className="h-4 w-4 mr-1" />
-                              Permissions
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Settings</CardTitle>
-                  <CardDescription>
-                    Configure platform-wide settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Email Notifications</p>
-                      <p className="text-sm text-gray-500">
-                        Send automated email notifications
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Approval Workflows</p>
-                      <p className="text-sm text-gray-500">
-                        Manage event approval processes
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Security Settings</p>
-                      <p className="text-sm text-gray-500">
-                        Configure security policies
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Maintenance</CardTitle>
-                  <CardDescription>
-                    Platform maintenance and monitoring
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Database Backup</p>
-                      <p className="text-sm text-gray-500">
-                        Last backup: 2 hours ago
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Backup Now
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">System Logs</p>
-                      <p className="text-sm text-gray-500">
-                        View system activity logs
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      View Logs
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Performance Monitor</p>
-                      <p className="text-sm text-gray-500">
-                        System performance metrics
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      View Metrics
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+          <TabsContent value="events" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Event Management</h2>
+                <p className="text-gray-600 mt-1">Oversee all campus events</p>
+              </div>
+              <Button onClick={() => setShowCreateEvent(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Event
+              </Button>
             </div>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <Calendar className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Event Management System</h3>
+                  <p className="text-gray-600 mb-6">
+                    Comprehensive event management including scheduling, approval workflows, 
+                    venue management, and participant tracking.
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Button onClick={() => setShowCreateEvent(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Event
+                    </Button>
+                    <Button variant="outline">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      View Analytics
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="venues" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Venue Management</h2>
+                <p className="text-gray-600 mt-1">Manage campus venues and facilities</p>
+              </div>
+              <Button>
+                <Building className="h-4 w-4 mr-2" />
+                Add Venue
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <MapPin className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Venue Management System</h3>
+                  <p className="text-gray-600 mb-6">
+                    Manage all campus venues including capacity, availability, 
+                    booking schedules, and facility maintenance.
+                  </p>
+                  <Button>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configure Venues
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="create" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Event</CardTitle>
+                <CardDescription>Create and manage campus events as an administrator</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12">
+                  <Calendar className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Create Administrative Event</h3>
+                  <p className="text-gray-600 mb-6">
+                    As an administrator, you can create events that bypass the normal approval process
+                    and have immediate access to all system resources.
+                  </p>
+                  <Button size="lg" onClick={() => setShowCreateEvent(true)}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create Event
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Analytics Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6 flex flex-col items-center">
-              <BarChart3 className="h-8 w-8 text-blue-600 mb-2" />
-              <div className="text-2xl font-bold">
-                {analytics.eventAttendance}%
-              </div>
-              <div className="text-sm text-gray-600">Event Attendance</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 flex flex-col items-center">
-              <PieChart className="h-8 w-8 text-green-600 mb-2" />
-              <div className="text-2xl font-bold">
-                {analytics.venueUtilization}%
-              </div>
-              <div className="text-sm text-gray-600">Venue Utilization</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 flex flex-col items-center">
-              <FileText className="h-8 w-8 text-yellow-600 mb-2" />
-              <div className="text-2xl font-bold">
-                ₦{analytics.financialSummary.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">Financial Summary</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 flex flex-col items-center">
-              <BarChart3 className="h-8 w-8 text-purple-600 mb-2" />
-              <div className="text-2xl font-bold">{analytics.engagement}</div>
-              <div className="text-sm text-gray-600">User Engagement</div>
-            </CardContent>
-          </Card>
-        </div>
-        {/* Analytics Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded shadow p-4">
-            <div className="font-semibold mb-2">Event Attendance Trends</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart
-                data={attendanceData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="attendance"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="bg-white rounded shadow p-4">
-            <div className="font-semibold mb-2">Venue Utilization</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart
-                data={venueData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="venue" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="utilization" fill="#22c55e" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="bg-white rounded shadow p-4">
-            <div className="font-semibold mb-2">Financial Summary</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart
-                data={financeData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#facc15" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#facc15"
-                  fillOpacity={1}
-                  fill="url(#colorRev)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="bg-white rounded shadow p-4">
-            <div className="font-semibold mb-2">User Engagement</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <RePieChart>
-                <Pie
-                  data={engagementData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                  label
-                >
-                  {engagementData.map((entry, idx) => (
-                    <Cell
-                      key={`cell-${idx}`}
-                      fill={COLORS[idx % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </RePieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="mb-8 flex justify-end">
-          <Button size="sm" variant="outline" onClick={handleExportReport}>
-            <FileText className="h-4 w-4 mr-1" /> Export Report
-          </Button>
-        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,6 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/components/auth/AuthProvider";
-import { RichTextEditor } from "@mantine/rte";
 import { VenueSelector } from "./VenueSelector";
 
 interface CreateEventFormProps {
@@ -78,21 +78,27 @@ export const CreateEventForm = ({
     { value: "seminar", label: "Seminar" },
   ];
 
-  const venues = [
-    { id: "1", name: "Main Auditorium", capacity: 500 },
-    { id: "2", name: "Engineering Hall A", capacity: 150 },
-    { id: "3", name: "Science Lab Complex", capacity: 80 },
-    { id: "4", name: "Business Conference Room", capacity: 50 },
-  ];
-
   // Fetch resources and their availability
   useEffect(() => {
     const fetchResources = async () => {
-      const { data: resourcesData } = await supabase
-        .from("resources")
-        .select("*")
-        .eq("is_active", true);
-      setAvailableResources(resourcesData || []);
+      try {
+        const { data: resourcesData } = await supabase
+          .from("resources")
+          .select("*")
+          .eq("is_active", true);
+        setAvailableResources(resourcesData || []);
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+        // Mock resources for demonstration
+        setAvailableResources([
+          { id: "1", name: "Projector", category: "audio_visual", price_per_unit: 500, available_quantity: 10 },
+          { id: "2", name: "Sound System", category: "audio_visual", price_per_unit: 1000, available_quantity: 5 },
+          { id: "3", name: "Chairs", category: "furniture", price_per_unit: 50, available_quantity: 200 },
+          { id: "4", name: "Tables", category: "furniture", price_per_unit: 100, available_quantity: 50 },
+          { id: "5", name: "Microphones", category: "audio_visual", price_per_unit: 200, available_quantity: 15 },
+          { id: "6", name: "Refreshments", category: "catering", price_per_unit: 300, available_quantity: 100 },
+        ]);
+      }
     };
     fetchResources();
   }, []);
@@ -101,7 +107,6 @@ export const CreateEventForm = ({
     const fetchAvailability = async () => {
       const availability = {};
       for (const res of availableResources) {
-        // For demo: just use available_quantity field. For real: check bookings for selected date/time.
         availability[res.id] = res.available_quantity;
       }
       setResourceAvailability(availability);
@@ -122,13 +127,56 @@ export const CreateEventForm = ({
     return acc;
   }, {});
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+  const addResource = () => {
+    setResources([...resources, { resource_id: "", quantity: 1 }]);
+  };
 
-    setLoading(true);
+  const removeResource = (index: number) => {
+    setResources(resources.filter((_, i) => i !== index));
+  };
+
+  // Handle banner upload
+  const handleBannerUpload = async () => {
+    if (!bannerFile) return null;
+    setUploading(true);
     try {
-      // Combine date and time
+      const fileExt = bannerFile.name.split(".").pop();
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from("event-banners")
+        .upload(fileName, bannerFile);
+      
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from("event-banners")
+        .getPublicUrl(fileName);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload banner image",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Final submit handler
+  const handleFinalSubmit = async (status: "draft" | "pending_approval") => {
+    if (!user) return;
+    setLoading(true);
+    
+    try {
+      let bannerUrl = formData.banner_url;
+      if (bannerFile) {
+        bannerUrl = await handleBannerUpload();
+      }
+
       const startDateTime =
         formData.start_date && startTime
           ? new Date(
@@ -156,20 +204,51 @@ export const CreateEventForm = ({
           registration_fee: formData.registration_fee
             ? parseFloat(formData.registration_fee)
             : 0,
-          status: "draft",
+          status,
+          banner_image_url: bannerUrl,
         })
         .select()
         .single();
 
       if (error) throw error;
 
+      // Create venue booking if venue is selected
+      if (formData.venue_id && startDateTime && endDateTime) {
+        await supabase.from("venue_bookings").insert({
+          venue_id: formData.venue_id,
+          event_id: event.id,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          booked_by: user.id,
+          booking_type: "event",
+          status: "active",
+        });
+      }
+
+      // Create resource requests
+      if (resources.length > 0) {
+        const resourceRequests = resources.map((resource) => ({
+          event_id: event.id,
+          resource_id: resource.resource_id,
+          quantity_requested: resource.quantity,
+          total_cost: (availableResources.find(r => r.id === resource.resource_id)?.price_per_unit || 0) * resource.quantity,
+          status: "pending",
+        }));
+
+        await supabase.from("event_resources").insert(resourceRequests);
+      }
+
       toast({
-        title: "Event Created Successfully",
-        description: "Your event has been created and saved as a draft.",
+        title: status === "draft" ? "Event Saved as Draft" : "Event Submitted",
+        description:
+          status === "draft"
+            ? "You can continue editing this event later."
+            : "Your event has been submitted for approval.",
       });
 
       onSuccess?.();
     } catch (error: any) {
+      console.error("Error creating event:", error);
       toast({
         title: "Error Creating Event",
         description: error.message,
@@ -178,14 +257,6 @@ export const CreateEventForm = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const addResource = () => {
-    setResources([...resources, { resource_id: "", quantity: 1 }]);
-  };
-
-  const removeResource = (index: number) => {
-    setResources(resources.filter((_, i) => i !== index));
   };
 
   // Step 1: Basic Info
@@ -221,14 +292,15 @@ export const CreateEventForm = ({
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="template">Event Template</Label>
-        <Input
-          id="template"
-          value={formData.template}
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
           onChange={(e) =>
-            setFormData({ ...formData, template: e.target.value })
+            setFormData({ ...formData, description: e.target.value })
           }
-          placeholder="(Optional) Use a template name"
+          placeholder="Describe your event..."
+          rows={4}
         />
       </div>
       <div className="flex justify-end gap-2 pt-4">
@@ -246,90 +318,8 @@ export const CreateEventForm = ({
     </div>
   );
 
-  // Step 2: Description (Rich Text)
+  // Step 2: Date, Time & Venue
   const renderStep2 = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <RichTextEditor
-          value={formData.description}
-          onChange={(value) => setFormData({ ...formData, description: value })}
-        />
-      </div>
-      <div className="flex justify-between gap-2 pt-4">
-        <Button variant="outline" type="button" onClick={() => setStep(1)}>
-          Back
-        </Button>
-        <Button type="button" onClick={() => setStep(3)}>
-          Next
-        </Button>
-      </div>
-    </div>
-  );
-
-  // Step 3: Banner Image Upload
-  const handleBannerUpload = async () => {
-    if (!bannerFile) return;
-    setUploading(true);
-    const fileExt = bannerFile.name.split(".").pop();
-    const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-    const { data, error } = await supabase.storage
-      .from("event-banners")
-      .upload(fileName, bannerFile);
-    setUploading(false);
-    if (error) {
-      toast({
-        title: "Upload Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      return null;
-    }
-    return data?.path
-      ? supabase.storage.from("event-banners").getPublicUrl(data.path).data
-          .publicUrl
-      : null;
-  };
-  const renderStep3 = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Event Banner</Label>
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
-        />
-        {formData.banner_url && (
-          <img
-            src={formData.banner_url}
-            alt="Event Banner"
-            className="mt-2 rounded w-full max-h-48 object-cover"
-          />
-        )}
-      </div>
-      <div className="flex justify-between gap-2 pt-4">
-        <Button variant="outline" type="button" onClick={() => setStep(2)}>
-          Back
-        </Button>
-        <Button
-          type="button"
-          onClick={async () => {
-            if (bannerFile) {
-              const url = await handleBannerUpload();
-              if (url) setFormData({ ...formData, banner_url: url });
-            }
-            setStep(4);
-          }}
-          disabled={uploading}
-        >
-          {uploading ? "Uploading..." : "Next"}
-        </Button>
-      </div>
-    </div>
-  );
-
-  // Step 4: Date, Time, Recurrence
-  const renderStep4 = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -408,33 +398,28 @@ export const CreateEventForm = ({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="recurrence">Recurrence</Label>
-        <Select
-          value={formData.recurrence}
-          onValueChange={(value) =>
-            setFormData({ ...formData, recurrence: value })
+        <Label>Select Venue *</Label>
+        <VenueSelector
+          selectedDate={
+            formData.start_date ? format(formData.start_date, "yyyy-MM-dd") : ""
           }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="None (one-time event)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">None</SelectItem>
-            <SelectItem value="daily">Daily</SelectItem>
-            <SelectItem value="weekly">Weekly</SelectItem>
-            <SelectItem value="monthly">Monthly</SelectItem>
-          </SelectContent>
-        </Select>
+          selectedStartTime={startTime}
+          selectedEndTime={endTime}
+          value={formData.venue_id}
+          onSelectVenue={(venueId) =>
+            setFormData({ ...formData, venue_id: venueId })
+          }
+        />
       </div>
       <div className="flex justify-between gap-2 pt-4">
-        <Button variant="outline" type="button" onClick={() => setStep(3)}>
+        <Button variant="outline" type="button" onClick={() => setStep(1)}>
           Back
         </Button>
         <Button
           type="button"
-          onClick={() => setStep(5)}
+          onClick={() => setStep(3)}
           disabled={
-            !formData.start_date || !formData.end_date || !startTime || !endTime
+            !formData.start_date || !formData.end_date || !startTime || !endTime || !formData.venue_id
           }
         >
           Next
@@ -443,20 +428,9 @@ export const CreateEventForm = ({
     </div>
   );
 
-  // Step 5: Venue, Resources, Participants, Fee
-  const renderStep5 = () => (
+  // Step 3: Additional Details
+  const renderStep3 = () => (
     <div className="space-y-4">
-      <VenueSelector
-        selectedDate={
-          formData.start_date ? format(formData.start_date, "yyyy-MM-dd") : ""
-        }
-        selectedStartTime={startTime}
-        selectedEndTime={endTime}
-        value={formData.venue_id}
-        onSelectVenue={(venueId) =>
-          setFormData({ ...formData, venue_id: venueId })
-        }
-      />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="max_participants">Max Participants</Label>
@@ -484,254 +458,40 @@ export const CreateEventForm = ({
           />
         </div>
       </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Resource Requirements</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addResource}
-          >
-            <Plus className="h-4 w-4 mr-2" /> Add Resource
-          </Button>
-        </div>
-        {/* Grouped by category */}
-        {Object.entries(resourcesByCategory).map(([category, resList]) => (
-          <div key={category} className="mb-2">
-            <div className="font-semibold mb-1">
-              {category.replace("_", " ").toUpperCase()}
-            </div>
-            {resources
-              .filter((r) => resList.some((ar) => ar.id === r.resource_id))
-              .map((resource, index) => {
-                const res = availableResources.find(
-                  (ar) => ar.id === resource.resource_id
-                );
-                const availableQty =
-                  resourceAvailability[resource.resource_id] || 0;
-                return (
-                  <div
-                    key={resource.resource_id}
-                    className="flex flex-col md:flex-row items-center gap-2 p-2 border rounded mb-2"
-                  >
-                    <Select
-                      value={resource.resource_id}
-                      onValueChange={(value) => {
-                        const newResources = [...resources];
-                        newResources[index].resource_id = value;
-                        setResources(newResources);
-                      }}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select resource" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {resList.map((ar) => (
-                          <SelectItem
-                            key={ar.id}
-                            value={ar.id}
-                            disabled={resourceAvailability[ar.id] === 0}
-                          >
-                            {ar.name} (₦{ar.price_per_unit}/unit,{" "}
-                            {resourceAvailability[ar.id]} available)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      min="1"
-                      max={availableQty}
-                      value={resource.quantity}
-                      onChange={(e) => {
-                        const newResources = [...resources];
-                        newResources[index].quantity = Math.min(
-                          parseInt(e.target.value) || 1,
-                          availableQty
-                        );
-                        setResources(newResources);
-                      }}
-                      className="w-20"
-                      placeholder="Qty"
-                      disabled={availableQty === 0}
-                    />
-                    <div className="text-xs text-gray-500">
-                      ₦{(res?.price_per_unit || 0) * (resource.quantity || 1)}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label className="text-xs">Delivery</Label>
-                      <Input
-                        type="datetime-local"
-                        value={resource.delivery_time || ""}
-                        onChange={(e) => {
-                          const newResources = [...resources];
-                          newResources[index].delivery_time = e.target.value;
-                          setResources(newResources);
-                        }}
-                        className="w-40"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label className="text-xs">Return</Label>
-                      <Input
-                        type="datetime-local"
-                        value={resource.return_time || ""}
-                        onChange={(e) => {
-                          const newResources = [...resources];
-                          newResources[index].return_time = e.target.value;
-                          setResources(newResources);
-                        }}
-                        className="w-40"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeResource(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                );
-              })}
-          </div>
-        ))}
-        <div className="font-semibold text-right">
-          Total Resource Cost: ₦{totalResourceCost}
-        </div>
+      <div className="space-y-2">
+        <Label>Event Banner</Label>
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
+        />
       </div>
       <div className="flex justify-between gap-2 pt-4">
-        <Button variant="outline" type="button" onClick={() => setStep(4)}>
+        <Button variant="outline" type="button" onClick={() => setStep(2)}>
           Back
         </Button>
-        <Button
-          type="button"
-          onClick={() => setStep(6)}
-          disabled={!formData.venue_id}
-        >
+        <Button type="button" onClick={() => setStep(4)}>
           Next
         </Button>
       </div>
     </div>
   );
 
-  // Step 6: Review & Save
-  const handleFinalSubmit = async (status: "draft" | "pending_approval") => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const startDateTime =
-        formData.start_date && startTime
-          ? new Date(
-              `${format(formData.start_date, "yyyy-MM-dd")}T${startTime}`
-            )
-          : null;
-      const endDateTime =
-        formData.end_date && endTime
-          ? new Date(`${format(formData.end_date, "yyyy-MM-dd")}T${endTime}`)
-          : null;
-      const { data: event, error } = await supabase
-        .from("events")
-        .insert({
-          title: formData.title,
-          description: formData.description,
-          event_type: formData.event_type as any,
-          organizer_id: user.id,
-          venue_id: formData.venue_id || null,
-          start_date: startDateTime?.toISOString(),
-          end_date: endDateTime?.toISOString(),
-          max_participants: formData.max_participants
-            ? parseInt(formData.max_participants)
-            : null,
-          registration_fee: formData.registration_fee
-            ? parseFloat(formData.registration_fee)
-            : 0,
-          status,
-          banner_url: formData.banner_url,
-          recurrence: formData.recurrence,
-          template: formData.template,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      toast({
-        title: status === "draft" ? "Event Saved as Draft" : "Event Submitted",
-        description:
-          status === "draft"
-            ? "You can continue editing this event later."
-            : "Your event has been submitted for approval.",
-      });
-      onSuccess?.();
-    } catch (error: any) {
-      toast({
-        title: "Error Creating Event",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  const renderStep6 = () => (
+  // Step 4: Review & Submit
+  const renderStep4 = () => (
     <div className="space-y-4">
       <CardTitle>Review Event Details</CardTitle>
       <div className="space-y-2">
-        <div>
-          <b>Title:</b> {formData.title}
-        </div>
-        <div>
-          <b>Type:</b> {formData.event_type}
-        </div>
-        <div>
-          <b>Template:</b> {formData.template}
-        </div>
-        <div>
-          <b>Description:</b>{" "}
-          <span dangerouslySetInnerHTML={{ __html: formData.description }} />
-        </div>
-        {formData.banner_url && (
-          <img
-            src={formData.banner_url}
-            alt="Event Banner"
-            className="rounded w-full max-h-48 object-cover"
-          />
-        )}
-        <div>
-          <b>Start:</b>{" "}
-          {formData.start_date ? format(formData.start_date, "PPP") : ""}{" "}
-          {startTime}
-        </div>
-        <div>
-          <b>End:</b>{" "}
-          {formData.end_date ? format(formData.end_date, "PPP") : ""} {endTime}
-        </div>
-        <div>
-          <b>Recurrence:</b> {formData.recurrence || "None"}
-        </div>
-        <div>
-          <b>Venue:</b>{" "}
-          {venues.find((v) => v.id === formData.venue_id)?.name || ""}
-        </div>
-        <div>
-          <b>Max Participants:</b> {formData.max_participants}
-        </div>
-        <div>
-          <b>Registration Fee:</b> ₦{formData.registration_fee}
-        </div>
-        <div>
-          <b>Resources:</b>{" "}
-          {resources
-            .map(
-              (r, i) =>
-                `${availableResources.find((ar) => ar.id === r.resource_id)?.name || ""} (x${r.quantity})`
-            )
-            .join(", ")}
-        </div>
+        <div><b>Title:</b> {formData.title}</div>
+        <div><b>Type:</b> {formData.event_type}</div>
+        <div><b>Description:</b> {formData.description}</div>
+        <div><b>Start:</b> {formData.start_date ? format(formData.start_date, "PPP") : ""} {startTime}</div>
+        <div><b>End:</b> {formData.end_date ? format(formData.end_date, "PPP") : ""} {endTime}</div>
+        <div><b>Max Participants:</b> {formData.max_participants}</div>
+        <div><b>Registration Fee:</b> ₦{formData.registration_fee}</div>
       </div>
       <div className="flex justify-between gap-2 pt-4">
-        <Button variant="outline" type="button" onClick={() => setStep(5)}>
+        <Button variant="outline" type="button" onClick={() => setStep(3)}>
           Back
         </Button>
         <Button
@@ -752,7 +512,6 @@ export const CreateEventForm = ({
     </div>
   );
 
-  // Render stepper
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
@@ -761,7 +520,7 @@ export const CreateEventForm = ({
       </CardHeader>
       <CardContent>
         <div className="flex justify-center gap-2 mb-4">
-          {[1, 2, 3, 4, 5, 6].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
               className={`h-2 w-8 rounded-full ${step === s ? "bg-blue-600" : "bg-gray-200"}`}
@@ -772,8 +531,6 @@ export const CreateEventForm = ({
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
         {step === 4 && renderStep4()}
-        {step === 5 && renderStep5()}
-        {step === 6 && renderStep6()}
       </CardContent>
     </Card>
   );
