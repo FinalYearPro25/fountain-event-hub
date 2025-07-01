@@ -240,7 +240,7 @@ export const EventRegistrationModal = ({ event, onClose, onSuccess }: EventRegis
   const renderStep3 = () => (
     <div className="text-center space-y-4 py-8">
       <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-      <h3 className="text-xl font-bold text-green-800">Registration Successful!</</h3>
+      <h3 className="text-xl font-bold text-green-800">Registration Successful!</h3>
       <p className="text-gray-600">
         You have been successfully registered for <strong>{event.title}</strong>
       </p>
