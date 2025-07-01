@@ -36,27 +36,21 @@ export default function Dashboard() {
 
   console.log("User routing - Role:", userRole, "Type:", userType, "Profile:", profile);
 
-  // Route based on user_type first, then role for specific permissions
-  switch (userType) {
-    case "staff":
-      return <StaffDashboard />;
-    case "student":
-      return <StudentDashboard />;
-    case "outsider":
-      return <StudentDashboard />;
-    default:
-      // Fallback to role-based routing for admin functions
-      switch (userRole) {
-        case "super_admin":
-        case "senate_member":
-          return <AdminDashboard />;
-        case "dean":
-        case "department_head":
-          return <DeanDashboard />;
-        case "event_coordinator":
-          return <StaffDashboard />;
-        default:
-          return <StudentDashboard />;
-      }
+  // First check for admin roles
+  if (userRole === "super_admin" || userRole === "senate_member") {
+    return <AdminDashboard />;
   }
+
+  // Then check for dean roles
+  if (userRole === "dean" || userRole === "department_head") {
+    return <DeanDashboard />;
+  }
+
+  // Then check for staff roles or event coordinators
+  if (userRole === "event_coordinator" || userType === "staff") {
+    return <StaffDashboard />;
+  }
+
+  // Default to student dashboard for students and outsiders
+  return <StudentDashboard />;
 }

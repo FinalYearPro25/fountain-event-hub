@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { VenueSelector } from './VenueSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, MapPin, Users, DollarSign, Clock, Plus, X } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Plus, X, Upload, Image } from 'lucide-react';
 
 interface CreateEventFormProps {
   onSuccess?: () => void;
@@ -24,6 +23,9 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -88,6 +90,58 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
     }));
   };
 
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const filePath = `event-banners/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('event-images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('event-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, bannerImageUrl: publicUrl }));
+      setImagePreview(publicUrl);
+      
+      toast({
+        title: "Image uploaded successfully!",
+        description: "Your event banner has been uploaded."
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your image. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const addResource = (resourceId: string) => {
     const resource = availableResources.find(r => r.id === resourceId);
     if (resource && !formData.resources.find(r => r.id === resourceId)) {
@@ -119,6 +173,11 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
 
     setLoading(true);
     try {
+      // Upload image if file is selected
+      if (imageFile) {
+        await handleImageUpload(imageFile);
+      }
+
       // Create the event
       const eventData = {
         title: formData.title,
@@ -344,15 +403,50 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="bannerImageUrl">Banner Image URL</Label>
-        <Input
-          id="bannerImageUrl"
-          type="url"
-          value={formData.bannerImageUrl}
-          onChange={(e) => updateFormData('bannerImageUrl', e.target.value)}
-          placeholder="Enter image URL (optional)"
-        />
+      <div className="space-y-4">
+        <Label>Event Banner</Label>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="bannerImageUrl">Banner Image URL (Optional)</Label>
+            <Input
+              id="bannerImageUrl"
+              type="url"
+              value={formData.bannerImageUrl}
+              onChange={(e) => updateFormData('bannerImageUrl', e.target.value)}
+              placeholder="Enter image URL"
+            />
+          </div>
+          
+          <div className="text-center text-gray-500">OR</div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="imageFile">Upload Banner Image</Label>
+            <div className="flex items-center justify-center w-full">
+              <label htmlFor="imageFile" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG or JPEG (MAX. 5MB)</p>
+                    </>
+                  )}
+                </div>
+                <Input
+                  id="imageFile"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -474,6 +568,17 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
               </div>
             </div>
 
+            {(formData.bannerImageUrl || imagePreview) && (
+              <div>
+                <h4 className="font-medium mb-2">Event Banner</h4>
+                <img 
+                  src={imagePreview || formData.bannerImageUrl} 
+                  alt="Event banner" 
+                  className="w-full max-h-48 object-cover rounded-lg"
+                />
+              </div>
+            )}
+
             {formData.categories.length > 0 && (
               <div>
                 <h4 className="font-medium mb-2">Categories</h4>
@@ -566,9 +671,9 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
             ) : (
               <Button 
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || uploadingImage}
               >
-                {loading ? 'Creating Event...' : 'Create Event'}
+                {loading ? 'Creating Event...' : uploadingImage ? 'Uploading Image...' : 'Create Event'}
               </Button>
             )}
           </div>

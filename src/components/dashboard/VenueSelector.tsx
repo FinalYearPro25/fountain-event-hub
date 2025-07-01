@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -76,7 +75,7 @@ export const VenueSelector = ({
       is_active: true
     },
     {
-      id: "postgraduate-building",
+      id: "post-graduate-building",
       name: "Post Graduate Building",
       venue_type: "conference_room",
       capacity: 80,
