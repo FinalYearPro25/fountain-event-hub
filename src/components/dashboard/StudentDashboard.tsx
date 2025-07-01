@@ -1,27 +1,190 @@
+import { useState, useEffect } from "react";
+import { useAuthContext } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Calendar,
+  Users,
+  MapPin,
+  Clock,
+  Star,
+  Plus,
+  Search,
+  Filter,
+  BookOpen,
+  Award,
+  Bell,
+  Edit,
+  FileText,
+  Download,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { EventRegistrationModal } from "./EventRegistrationModal";
+// import ProfileEditModal from './ProfileEditModal';
+import { supabase } from "@/integrations/supabase/client";
+// import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
+// import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
+// import "react-big-calendar/lib/css/react-big-calendar.css";
+// const localizer = dateFnsLocalizer({
+//   format,
+//   parse,
+//   startOfWeek,
+//   getDay,
+//   locales: {},
+// });
 
-import { useState } from 'react';
-import { useAuthContext } from '@/components/auth/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, MapPin, Clock, Star, Plus, Search, Filter, BookOpen, Award, Bell } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EventRegistrationModal } from './EventRegistrationModal';
+const locales = {
+  "en-US": require("date-fns/locale/en-US"),
+};
 
 export const StudentDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all");
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [academicEvents, setAcademicEvents] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [penalties, setPenalties] = useState([]);
+  const [reputation, setReputation] = useState({
+    noShows: 0,
+    total: 0,
+    blacklisted: false,
+  });
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("event_registrations")
+        .select("*, event:events(title)")
+        .eq("user_id", user.id)
+        .not("payment_status", "is", null);
+      setPaymentHistory(data || []);
+    };
+    fetchPayments();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchCalendarEvents = async () => {
+      if (!user) return;
+      // Fetch user events
+      const { data: userEvents } = await supabase
+        .from("event_registrations")
+        .select("*, event:events(*)")
+        .eq("user_id", user.id);
+      // Fetch academic calendar (mock for now)
+      const academic = [
+        {
+          title: "Holiday: Independence Day",
+          start: "2024-10-01",
+          end: "2024-10-01",
+          type: "holiday",
+        },
+        {
+          title: "Exam Period",
+          start: "2024-11-10",
+          end: "2024-11-20",
+          type: "exam",
+        },
+      ];
+      setAcademicEvents(academic);
+      setBlockedDates(
+        academic.map((e) => ({
+          start: new Date(e.start),
+          end: new Date(e.end),
+        }))
+      );
+      // Combine events
+      const events = [
+        ...userEvents.map((e) => ({
+          title: e.event?.title,
+          start: new Date(e.event?.start_date),
+          end: new Date(e.event?.end_date),
+          type: "user",
+        })),
+        ...academic.map((e) => ({
+          title: e.title,
+          start: new Date(e.start),
+          end: new Date(e.end),
+          type: e.type,
+        })),
+      ];
+      setCalendarEvents(events);
+    };
+    fetchCalendarEvents();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchPenalties = async () => {
+      if (!user) return;
+      // Fetch all absences with penalty due
+      const { data } = await supabase
+        .from("event_registrations")
+        .select("*, event:events(title)")
+        .eq("user_id", user.id)
+        .eq("attendance_status", "absent");
+      setPenalties(
+        (data || []).map((p) => ({
+          ...p,
+          penalty: 1000, // For demo: fixed penalty
+          paid: "penalty_paid" in p ? p.penalty_paid : false,
+        }))
+      );
+      // Calculate reputation
+      const { count: total } = await supabase
+        .from("event_registrations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      const { count: noShows } = await supabase
+        .from("event_registrations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("attendance_status", "absent");
+      // Mock blacklist: if more than 3 no-shows
+      setReputation({
+        noShows: noShows || 0,
+        total: total || 0,
+        blacklisted: (noShows || 0) >= 3,
+      });
+    };
+    fetchPenalties();
+  }, [user]);
+
+  const downloadInvoice = (payment) => {
+    // For demo: just open a printable window. In production, generate a PDF.
+    const win = window.open("", "_blank");
+    win.document.write(`<h2>Invoice for ${payment.event?.title}</h2>`);
+    win.document.write(`<p>Amount: ₦${payment.registration_fee}</p>`);
+    win.document.write(`<p>Status: ${payment.payment_status}</p>`);
+    win.document.write(`<p>Date: ${payment.created_at}</p>`);
+    win.print();
+  };
 
   // Mock data for events
   const [upcomingEvents, setUpcomingEvents] = useState([
     {
       id: 1,
       title: "Tech Innovation Summit 2024",
-      description: "Annual technology conference featuring industry leaders and startup showcases",
+      description:
+        "Annual technology conference featuring industry leaders and startup showcases",
       date: "2024-02-15",
       time: "09:00 AM",
       venue: "Main Auditorium",
@@ -31,12 +194,13 @@ export const StudentDashboard = () => {
       capacity: 300,
       registered_count: 150,
       registration_fee: 500,
-      organizer: "Dr. Sarah Johnson"
+      organizer: "Dr. Sarah Johnson",
     },
     {
       id: 2,
       title: "Cultural Festival",
-      description: "Celebrate diversity with music, dance, and food from around the world",
+      description:
+        "Celebrate diversity with music, dance, and food from around the world",
       date: "2024-02-20",
       time: "02:00 PM",
       venue: "Campus Ground",
@@ -46,12 +210,13 @@ export const StudentDashboard = () => {
       capacity: 500,
       registered_count: 320,
       registration_fee: 0,
-      organizer: "Student Affairs"
+      organizer: "Student Affairs",
     },
     {
       id: 3,
       title: "Career Development Workshop",
-      description: "Professional skills and career guidance session with industry experts",
+      description:
+        "Professional skills and career guidance session with industry experts",
       date: "2024-02-25",
       time: "10:00 AM",
       venue: "Business Hall",
@@ -61,12 +226,13 @@ export const StudentDashboard = () => {
       capacity: 100,
       registered_count: 65,
       registration_fee: 200,
-      organizer: "Career Services"
+      organizer: "Career Services",
     },
     {
       id: 4,
       title: "AI and Machine Learning Seminar",
-      description: "Introduction to artificial intelligence and its applications in modern technology",
+      description:
+        "Introduction to artificial intelligence and its applications in modern technology",
       date: "2024-03-01",
       time: "11:00 AM",
       venue: "Engineering Hall A",
@@ -76,36 +242,47 @@ export const StudentDashboard = () => {
       capacity: 150,
       registered_count: 89,
       registration_fee: 300,
-      organizer: "Prof. Michael Chen"
-    }
+      organizer: "Prof. Michael Chen",
+    },
   ]);
 
-  const myRegistrations = upcomingEvents.filter(event => event.registered);
+  const myRegistrations = upcomingEvents.filter((event) => event.registered);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-red-100 text-red-800';
-      case 'full': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "open":
+        return "bg-green-100 text-green-800";
+      case "closed":
+        return "bg-red-100 text-red-800";
+      case "full":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'academic': return 'bg-blue-100 text-blue-800';
-      case 'cultural': return 'bg-purple-100 text-purple-800';
-      case 'sports': return 'bg-orange-100 text-orange-800';
-      case 'conference': return 'bg-indigo-100 text-indigo-800';
-      case 'workshop': return 'bg-teal-100 text-teal-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "academic":
+        return "bg-blue-100 text-blue-800";
+      case "cultural":
+        return "bg-purple-100 text-purple-800";
+      case "sports":
+        return "bg-orange-100 text-orange-800";
+      case "conference":
+        return "bg-indigo-100 text-indigo-800";
+      case "workshop":
+        return "bg-teal-100 text-teal-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const filteredEvents = upcomingEvents.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterType === 'all' || event.type === filterType;
+  const filteredEvents = upcomingEvents.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterType === "all" || event.type === filterType;
     return matchesSearch && matchesFilter;
   });
 
@@ -116,14 +293,84 @@ export const StudentDashboard = () => {
 
   const handleRegistrationSuccess = () => {
     // Update the event in the local state
-    setUpcomingEvents(prev => 
-      prev.map(event => 
-        event.id === selectedEvent?.id 
-          ? { ...event, registered: true, registered_count: event.registered_count + 1 }
+    setUpcomingEvents((prev) =>
+      prev.map((event) =>
+        event.id === selectedEvent?.id
+          ? {
+              ...event,
+              registered: true,
+              registered_count: event.registered_count + 1,
+            }
           : event
       )
     );
   };
+
+  // Comment out handleExportICS and handleExportGoogle functions that use 'format' from 'date-fns'
+  // const handleExportICS = () => {
+  //   // For demo: generate a simple .ics file for all user events
+  //   let ics = "BEGIN:VCALENDAR\nVERSION:2.0\n";
+  //   calendarEvents
+  //     .filter((e) => e.type === "user")
+  //     .forEach((e) => {
+  //       ics += `BEGIN:VEVENT\nSUMMARY:${e.title}\nDTSTART:${format(e.start, "yyyyMMdd")}\nDTEND:${format(e.end, "yyyyMMdd")}\nEND:VEVENT\n`;
+  //     });
+  //   ics += "END:VCALENDAR";
+  //   const blob = new Blob([ics], { type: "text/calendar" });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = "events.ics";
+  //   a.click();
+  // };
+
+  // const handleExportGoogle = () => {
+  //   // For demo: open Google Calendar event creation for the first event
+  //   const e = calendarEvents.find((e) => e.type === "user");
+  //   if (!e) return;
+  //   // ...
+  // };
+
+  const handlePayPenalty = (penalty) => {
+    // For demo: mark as paid
+    setPenalties(
+      penalties.map((p) => (p.id === penalty.id ? { ...p, paid: true } : p))
+    );
+    // In production: integrate payment and update DB
+  };
+
+  // Mock certificates data
+  const certificates = [
+    {
+      id: 1,
+      event: "Tech Symposium 2024",
+      date: "2024-06-15",
+      url: "#", // Placeholder for download
+    },
+    {
+      id: 2,
+      event: "Leadership Workshop",
+      date: "2024-05-10",
+      url: "#",
+    },
+  ];
+
+  const handleDownload = (cert) => {
+    // For now, just alert. Later, trigger PDF download.
+    alert(`Download certificate for ${cert.event}`);
+  };
+
+  // Recommended for You (AI-powered, mock)
+  const getRecommendedEvents = () => {
+    // Recommend events of the same type as those the user is registered for
+    const registeredTypes = new Set(
+      upcomingEvents.filter((e) => e.registered).map((e) => e.type)
+    );
+    return upcomingEvents
+      .filter((e) => !e.registered && registeredTypes.has(e.type))
+      .slice(0, 2);
+  };
+  const recommendedEvents = getRecommendedEvents();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -136,8 +383,12 @@ export const StudentDashboard = () => {
                 <BookOpen className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Student Dashboard</h1>
-                <p className="text-sm text-gray-500">Welcome back, {profile?.full_name}</p>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Student Dashboard
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Welcome back, {profile?.full_name}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -153,14 +404,43 @@ export const StudentDashboard = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Recommended for You Section */}
+        {recommendedEvents.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Recommended for You</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recommendedEvents.map((event) => (
+                <Card key={event.id} className="border-blue-200">
+                  <CardContent className="p-4 flex flex-col gap-2">
+                    <div className="font-medium text-lg">{event.title}</div>
+                    <div className="text-sm text-gray-500">
+                      {event.date} • {event.venue}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-2">
+                      Type: {event.type}
+                    </div>
+                    <Button size="sm" onClick={() => handleEventClick(event)}>
+                      View & Register
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Events Registered</p>
-                  <p className="text-2xl font-bold text-gray-900">{myRegistrations.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Events Registered
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {myRegistrations.length}
+                  </p>
                 </div>
                 <Users className="h-8 w-8 text-blue-600" />
               </div>
@@ -171,7 +451,9 @@ export const StudentDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Events Attended</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Events Attended
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">12</p>
                 </div>
                 <Calendar className="h-8 w-8 text-green-600" />
@@ -183,7 +465,9 @@ export const StudentDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Certificates Earned</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Certificates Earned
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">8</p>
                 </div>
                 <Award className="h-8 w-8 text-yellow-600" />
@@ -195,8 +479,12 @@ export const StudentDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Events</p>
-                  <p className="text-2xl font-bold text-gray-900">{upcomingEvents.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Events
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {upcomingEvents.length}
+                  </p>
                 </div>
                 <Star className="h-8 w-8 text-purple-600" />
               </div>
@@ -211,7 +499,9 @@ export const StudentDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Discover Events</CardTitle>
-                <CardDescription>Find and register for upcoming campus events</CardDescription>
+                <CardDescription>
+                  Find and register for upcoming campus events
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -241,12 +531,18 @@ export const StudentDashboard = () => {
                 {/* Events List */}
                 <div className="space-y-4">
                   {filteredEvents.map((event) => (
-                    <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleEventClick(event)}>
+                    <Card
+                      key={event.id}
+                      className="hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleEventClick(event)}
+                    >
                       <CardContent className="p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {event.title}
+                              </h3>
                               <Badge className={getTypeColor(event.type)}>
                                 {event.type}
                               </Badge>
@@ -254,7 +550,9 @@ export const StudentDashboard = () => {
                                 {event.status}
                               </Badge>
                             </div>
-                            <p className="text-gray-600 mb-3">{event.description}</p>
+                            <p className="text-gray-600 mb-3">
+                              {event.description}
+                            </p>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
@@ -275,7 +573,10 @@ export const StudentDashboard = () => {
                             </div>
                             {event.registration_fee > 0 && (
                               <div className="mt-2">
-                                <Badge variant="outline" className="text-green-600 border-green-200">
+                                <Badge
+                                  variant="outline"
+                                  className="text-green-600 border-green-200"
+                                >
                                   ₦{event.registration_fee.toLocaleString()}
                                 </Badge>
                               </div>
@@ -283,14 +584,20 @@ export const StudentDashboard = () => {
                           </div>
                           <div className="flex flex-col gap-2">
                             {event.registered ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-100 text-green-800"
+                              >
                                 Registered
                               </Badge>
                             ) : (
-                              <Button size="sm" onClick={(e) => {
-                                e.stopPropagation();
-                                handleEventClick(event);
-                              }}>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEventClick(event);
+                                }}
+                              >
                                 View Details
                               </Button>
                             )}
@@ -317,7 +624,9 @@ export const StudentDashboard = () => {
                   <div className="space-y-3">
                     {myRegistrations.map((event) => (
                       <div key={event.id} className="p-3 border rounded-lg">
-                        <h4 className="font-medium text-gray-900 mb-1">{event.title}</h4>
+                        <h4 className="font-medium text-gray-900 mb-1">
+                          {event.title}
+                        </h4>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <Calendar className="h-3 w-3" />
                           {event.date}
@@ -330,7 +639,52 @@ export const StudentDashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-4">No registrations yet</p>
+                  <p className="text-gray-500 text-center py-4">
+                    No registrations yet
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Payment History */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment History</CardTitle>
+                <CardDescription>
+                  Your event payments and invoices
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {paymentHistory.length > 0 ? (
+                  <div className="space-y-3">
+                    {paymentHistory.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="p-3 border rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                      >
+                        <div>
+                          <div className="font-medium">
+                            {payment.event?.title}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ₦{payment.registration_fee} •{" "}
+                            {payment.payment_status} • {payment.created_at}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => downloadInvoice(payment)}
+                        >
+                          Download Invoice
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    No payments yet
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -358,19 +712,176 @@ export const StudentDashboard = () => {
 
             {/* Profile Summary */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Profile Summary</CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowProfileEdit(true)}
+                >
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
-                  <div><span className="font-medium">Name:</span> {profile?.full_name}</div>
-                  <div><span className="font-medium">Email:</span> {profile?.email}</div>
-                  <div><span className="font-medium">Student ID:</span> {profile?.student_id}</div>
-                  <div><span className="font-medium">College:</span> {profile?.college_id || 'Not specified'}</div>
-                  <div><span className="font-medium">Year:</span> {profile?.year_of_study ? `Year ${profile.year_of_study}` : 'Not specified'}</div>
+                  <div>
+                    <span className="font-medium">Name:</span>{" "}
+                    {profile?.full_name}
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span> {profile?.email}
+                  </div>
+                  <div>
+                    <span className="font-medium">Student ID:</span>{" "}
+                    {profile?.student_id}
+                  </div>
+                  <div>
+                    <span className="font-medium">College:</span>{" "}
+                    {profile?.college_id || "Not specified"}
+                  </div>
+                  <div>
+                    <span className="font-medium">Year:</span>{" "}
+                    {profile?.year_of_study
+                      ? `Year ${profile.year_of_study}`
+                      : "Not specified"}
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Calendar View */}
+            <Card>
+              <CardHeader>
+                <CardTitle>My Calendar</CardTitle>
+                <CardDescription>
+                  Your events and academic calendar
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-2 flex gap-2">
+                  {/* <Button size="sm" variant="outline" onClick={handleExportICS}>
+                    Export .ics
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportGoogle}
+                  >
+                    Export to Google Calendar
+                  </Button> */}
+                </div>
+                {/* <BigCalendar
+                  localizer={localizer}
+                  events={calendarEvents}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: 400 }}
+                  eventPropGetter={(event) => {
+                    if (event.type === "holiday")
+                      return {
+                        style: { backgroundColor: "#fbbf24", color: "#fff" },
+                      };
+                    if (event.type === "exam")
+                      return {
+                        style: { backgroundColor: "#ef4444", color: "#fff" },
+                      };
+                    if (event.type === "user")
+                      return {
+                        style: { backgroundColor: "#2563eb", color: "#fff" },
+                      };
+                    return {};
+                  }}
+                /> */}
+              </CardContent>
+            </Card>
+
+            {/* Penalty & No-Show Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Penalty & No-Show Management</CardTitle>
+                <CardDescription>
+                  Your attendance reputation and penalties
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-2">
+                  <span className="font-medium">Reputation Score:</span>{" "}
+                  {reputation.total > 0
+                    ? `${reputation.noShows} no-shows / ${reputation.total} events`
+                    : "N/A"}
+                  {reputation.blacklisted && (
+                    <span className="ml-2 text-red-600 font-bold">
+                      You are blacklisted due to frequent no-shows.
+                    </span>
+                  )}
+                </div>
+                {penalties.length > 0 ? (
+                  <div className="space-y-3">
+                    {penalties.map((penalty) => (
+                      <div
+                        key={penalty.id}
+                        className="p-3 border rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                      >
+                        <div>
+                          <div className="font-medium">
+                            {penalty.event?.title}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Penalty: ₦{penalty.penalty} • Status:{" "}
+                            {penalty.paid ? "Paid" : "Unpaid"}
+                          </div>
+                        </div>
+                        {!penalty.paid && !reputation.blacklisted && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePayPenalty(penalty)}
+                          >
+                            Pay Penalty
+                          </Button>
+                        )}
+                        {penalty.paid && (
+                          <span className="text-green-600 text-xs">Paid</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    No penalties due
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* My Certificates Section */}
+            <div className="mt-10">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Award className="h-5 w-5 text-yellow-500" /> My Certificates
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {certificates.map((cert) => (
+                  <Card key={cert.id}>
+                    <CardContent className="flex flex-col md:flex-row items-center justify-between p-4">
+                      <div>
+                        <div className="font-medium text-lg">{cert.event}</div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(cert.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 md:mt-0"
+                        onClick={() => handleDownload(cert)}
+                      >
+                        <Download className="h-4 w-4 mr-1" /> Download
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -382,6 +893,12 @@ export const StudentDashboard = () => {
         onOpenChange={setShowRegistrationModal}
         onRegistrationSuccess={handleRegistrationSuccess}
       />
+      {/* Profile Edit Modal */}
+      {/* <ProfileEditModal
+        open={showProfileEdit}
+        onOpenChange={setShowProfileEdit}
+        profile={profile}
+      /> */}
     </div>
   );
 };

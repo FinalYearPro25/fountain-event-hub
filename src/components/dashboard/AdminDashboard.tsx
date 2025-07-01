@@ -1,19 +1,62 @@
-
-import { useState } from 'react';
-import { useAuthContext } from '@/components/auth/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, Calendar, MapPin, Settings, BarChart3, 
-  Shield, Plus, Eye, Edit, Trash2, CheckCircle, 
-  XCircle, Clock, AlertTriangle 
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuthContext } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Users,
+  Calendar,
+  MapPin,
+  Settings,
+  BarChart3,
+  Shield,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  PieChart,
+  FileText,
+} from "lucide-react";
+import { ApprovalQueue } from "./ApprovalQueue";
+import { CertificateManager } from "./CertificateManager";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  PieChart as RePieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 export const AdminDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
+  const [analytics, setAnalytics] = useState({
+    eventAttendance: 0,
+    venueUtilization: 0,
+    financialSummary: 0,
+    engagement: 0,
+  });
 
   // Mock data
   const systemStats = {
@@ -22,7 +65,7 @@ export const AdminDashboard = () => {
     pendingApprovals: 8,
     totalVenues: 15,
     thisMonthEvents: 45,
-    registrations: 1234
+    registrations: 1234,
   };
 
   const pendingApprovals = [
@@ -34,7 +77,7 @@ export const AdminDashboard = () => {
       requestedDate: "2024-02-15",
       venue: "Main Auditorium",
       status: "pending_dean",
-      priority: "high"
+      priority: "high",
     },
     {
       id: 2,
@@ -44,8 +87,8 @@ export const AdminDashboard = () => {
       requestedDate: "2024-02-20",
       venue: "Campus Ground",
       status: "pending_senate",
-      priority: "medium"
-    }
+      priority: "medium",
+    },
   ];
 
   const recentEvents = [
@@ -56,7 +99,7 @@ export const AdminDashboard = () => {
       attendance: 85,
       capacity: 100,
       date: "2024-01-15",
-      rating: 4.5
+      rating: 4.5,
     },
     {
       id: 2,
@@ -65,8 +108,8 @@ export const AdminDashboard = () => {
       attendance: 245,
       capacity: 300,
       date: "2024-01-20",
-      rating: 4.8
-    }
+      rating: 4.8,
+    },
   ];
 
   const systemUsers = [
@@ -77,7 +120,7 @@ export const AdminDashboard = () => {
       role: "dean",
       college: "College of Engineering",
       status: "active",
-      lastLogin: "2024-01-18"
+      lastLogin: "2024-01-18",
     },
     {
       id: 2,
@@ -86,28 +129,92 @@ export const AdminDashboard = () => {
       role: "staff",
       college: "College of Sciences",
       status: "active",
-      lastLogin: "2024-01-17"
-    }
+      lastLogin: "2024-01-17",
+    },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "completed":
+        return "bg-blue-100 text-blue-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
+
+  useEffect(() => {
+    // For demo: mock analytics
+    setAnalytics({
+      eventAttendance: 87, // %
+      venueUtilization: 72, // %
+      financialSummary: 1200000, // ₦
+      engagement: 3400, // users
+    });
+  }, []);
+
+  const handleExportReport = () => {
+    // For demo: just open a printable window
+    const win = window.open("", "_blank");
+    win.document.write("<h2>Analytics Report</h2>");
+    win.document.write(
+      `<p>Event Attendance: ${analytics.eventAttendance}%</p>`
+    );
+    win.document.write(
+      `<p>Venue Utilization: ${analytics.venueUtilization}%</p>`
+    );
+    win.document.write(
+      `<p>Financial Summary: ₦${analytics.financialSummary}</p>`
+    );
+    win.document.write(`<p>User Engagement: ${analytics.engagement}</p>`);
+    win.print();
+  };
+
+  // Mock analytics chart data
+  const attendanceData = [
+    { month: "Jan", attendance: 60 },
+    { month: "Feb", attendance: 75 },
+    { month: "Mar", attendance: 80 },
+    { month: "Apr", attendance: 90 },
+    { month: "May", attendance: 87 },
+  ];
+  const venueData = [
+    { venue: "Auditorium", utilization: 80 },
+    { venue: "Hall A", utilization: 65 },
+    { venue: "Hall B", utilization: 72 },
+    { venue: "Sports Center", utilization: 55 },
+  ];
+  const financeData = [
+    { month: "Jan", revenue: 200000 },
+    { month: "Feb", revenue: 350000 },
+    { month: "Mar", revenue: 400000 },
+    { month: "Apr", revenue: 300000 },
+    { month: "May", revenue: 250000 },
+  ];
+  const engagementData = [
+    { name: "Students", value: 2200 },
+    { name: "Staff", value: 800 },
+    { name: "Outsiders", value: 400 },
+  ];
+  const COLORS = ["#2563eb", "#22c55e", "#facc15"];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -120,8 +227,12 @@ export const AdminDashboard = () => {
                 <Shield className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-sm text-gray-500">System Administration Panel</p>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Admin Dashboard
+                </h1>
+                <p className="text-sm text-gray-500">
+                  System Administration Panel
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -137,10 +248,15 @@ export const AdminDashboard = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="approvals">Approvals</TabsTrigger>
+            <TabsTrigger value="certificates">Certificates</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -153,8 +269,12 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Users</p>
-                      <p className="text-2xl font-bold text-gray-900">{systemStats.totalUsers.toLocaleString()}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        Total Users
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {systemStats.totalUsers.toLocaleString()}
+                      </p>
                     </div>
                     <Users className="h-8 w-8 text-blue-600" />
                   </div>
@@ -165,8 +285,12 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Active Events</p>
-                      <p className="text-2xl font-bold text-gray-900">{systemStats.activeEvents}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        Active Events
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {systemStats.activeEvents}
+                      </p>
                     </div>
                     <Calendar className="h-8 w-8 text-green-600" />
                   </div>
@@ -177,8 +301,12 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                      <p className="text-2xl font-bold text-gray-900">{systemStats.pendingApprovals}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        Pending Approvals
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {systemStats.pendingApprovals}
+                      </p>
                     </div>
                     <Clock className="h-8 w-8 text-yellow-600" />
                   </div>
@@ -189,8 +317,12 @@ export const AdminDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Venues</p>
-                      <p className="text-2xl font-bold text-gray-900">{systemStats.totalVenues}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        Total Venues
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {systemStats.totalVenues}
+                      </p>
                     </div>
                     <MapPin className="h-8 w-8 text-purple-600" />
                   </div>
@@ -203,16 +335,24 @@ export const AdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Events</CardTitle>
-                  <CardDescription>Latest event activities and performance</CardDescription>
+                  <CardDescription>
+                    Latest event activities and performance
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {recentEvents.map((event) => (
-                      <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={event.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{event.title}</h4>
+                          <h4 className="font-medium text-gray-900">
+                            {event.title}
+                          </h4>
                           <p className="text-sm text-gray-500">
-                            {event.attendance}/{event.capacity} attendees • Rating: {event.rating}/5
+                            {event.attendance}/{event.capacity} attendees •
+                            Rating: {event.rating}/5
                           </p>
                         </div>
                         <Badge className={getStatusColor(event.status)}>
@@ -227,24 +367,36 @@ export const AdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>System Health</CardTitle>
-                  <CardDescription>Platform performance and status</CardDescription>
+                  <CardDescription>
+                    Platform performance and status
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Database Status</span>
-                      <Badge className="bg-green-100 text-green-800">Online</Badge>
+                      <span className="text-sm font-medium">
+                        Database Status
+                      </span>
+                      <Badge className="bg-green-100 text-green-800">
+                        Online
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Email Service</span>
-                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <Badge className="bg-green-100 text-green-800">
+                        Active
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Storage Usage</span>
-                      <span className="text-sm text-gray-600">68% of 100GB</span>
+                      <span className="text-sm text-gray-600">
+                        68% of 100GB
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">API Response Time</span>
+                      <span className="text-sm font-medium">
+                        API Response Time
+                      </span>
                       <span className="text-sm text-gray-600">142ms avg</span>
                     </div>
                   </div>
@@ -259,9 +411,14 @@ export const AdminDashboard = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle>Event Approvals</CardTitle>
-                    <CardDescription>Review and approve pending event requests</CardDescription>
+                    <CardDescription>
+                      Review and approve pending event requests
+                    </CardDescription>
                   </div>
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-yellow-100 text-yellow-800"
+                  >
                     {pendingApprovals.length} Pending
                   </Badge>
                 </div>
@@ -269,29 +426,42 @@ export const AdminDashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   {pendingApprovals.map((approval) => (
-                    <Card key={approval.id} className="border-l-4 border-l-yellow-400">
+                    <Card
+                      key={approval.id}
+                      className="border-l-4 border-l-yellow-400"
+                    >
                       <CardContent className="p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{approval.title}</h3>
-                              <Badge className={getPriorityColor(approval.priority)}>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {approval.title}
+                              </h3>
+                              <Badge
+                                className={getPriorityColor(approval.priority)}
+                              >
                                 {approval.priority} priority
                               </Badge>
                             </div>
-                            <p className="text-gray-600 mb-3">Organized by: {approval.organizer}</p>
+                            <p className="text-gray-600 mb-3">
+                              Organized by: {approval.organizer}
+                            </p>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
                               <div>
-                                <span className="font-medium">Type:</span> {approval.type}
+                                <span className="font-medium">Type:</span>{" "}
+                                {approval.type}
                               </div>
                               <div>
-                                <span className="font-medium">Date:</span> {approval.requestedDate}
+                                <span className="font-medium">Date:</span>{" "}
+                                {approval.requestedDate}
                               </div>
                               <div>
-                                <span className="font-medium">Venue:</span> {approval.venue}
+                                <span className="font-medium">Venue:</span>{" "}
+                                {approval.venue}
                               </div>
                               <div>
-                                <span className="font-medium">Status:</span> {approval.status.replace('_', ' ')}
+                                <span className="font-medium">Status:</span>{" "}
+                                {approval.status.replace("_", " ")}
                               </div>
                             </div>
                           </div>
@@ -300,7 +470,10 @@ export const AdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Review
                             </Button>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Approve
                             </Button>
@@ -318,13 +491,19 @@ export const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="certificates">
+            <CertificateManager />
+          </TabsContent>
+
           <TabsContent value="events" className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle>Event Management</CardTitle>
-                    <CardDescription>Manage all campus events and activities</CardDescription>
+                    <CardDescription>
+                      Manage all campus events and activities
+                    </CardDescription>
                   </div>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -340,23 +519,29 @@ export const AdminDashboard = () => {
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {event.title}
+                              </h3>
                               <Badge className={getStatusColor(event.status)}>
                                 {event.status}
                               </Badge>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
                               <div>
-                                <span className="font-medium">Date:</span> {event.date}
+                                <span className="font-medium">Date:</span>{" "}
+                                {event.date}
                               </div>
                               <div>
-                                <span className="font-medium">Attendance:</span> {event.attendance}/{event.capacity}
+                                <span className="font-medium">Attendance:</span>{" "}
+                                {event.attendance}/{event.capacity}
                               </div>
                               <div>
-                                <span className="font-medium">Rating:</span> {event.rating}/5.0
+                                <span className="font-medium">Rating:</span>{" "}
+                                {event.rating}/5.0
                               </div>
                               <div>
-                                <span className="font-medium">Status:</span> {event.status}
+                                <span className="font-medium">Status:</span>{" "}
+                                {event.status}
                               </div>
                             </div>
                           </div>
@@ -389,7 +574,9 @@ export const AdminDashboard = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle>User Management</CardTitle>
-                    <CardDescription>Manage user accounts and permissions</CardDescription>
+                    <CardDescription>
+                      Manage user accounts and permissions
+                    </CardDescription>
                   </div>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -405,23 +592,29 @@ export const AdminDashboard = () => {
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {user.name}
+                              </h3>
                               <Badge className={getStatusColor(user.status)}>
                                 {user.status}
                               </Badge>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
                               <div>
-                                <span className="font-medium">Email:</span> {user.email}
+                                <span className="font-medium">Email:</span>{" "}
+                                {user.email}
                               </div>
                               <div>
-                                <span className="font-medium">Role:</span> {user.role}
+                                <span className="font-medium">Role:</span>{" "}
+                                {user.role}
                               </div>
                               <div>
-                                <span className="font-medium">College:</span> {user.college}
+                                <span className="font-medium">College:</span>{" "}
+                                {user.college}
                               </div>
                               <div>
-                                <span className="font-medium">Last Login:</span> {user.lastLogin}
+                                <span className="font-medium">Last Login:</span>{" "}
+                                {user.lastLogin}
                               </div>
                             </div>
                           </div>
@@ -449,29 +642,43 @@ export const AdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>System Settings</CardTitle>
-                  <CardDescription>Configure platform-wide settings</CardDescription>
+                  <CardDescription>
+                    Configure platform-wide settings
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Email Notifications</p>
-                      <p className="text-sm text-gray-500">Send automated email notifications</p>
+                      <p className="text-sm text-gray-500">
+                        Send automated email notifications
+                      </p>
                     </div>
-                    <Button variant="outline" size="sm">Configure</Button>
+                    <Button variant="outline" size="sm">
+                      Configure
+                    </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Approval Workflows</p>
-                      <p className="text-sm text-gray-500">Manage event approval processes</p>
+                      <p className="text-sm text-gray-500">
+                        Manage event approval processes
+                      </p>
                     </div>
-                    <Button variant="outline" size="sm">Configure</Button>
+                    <Button variant="outline" size="sm">
+                      Configure
+                    </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Security Settings</p>
-                      <p className="text-sm text-gray-500">Configure security policies</p>
+                      <p className="text-sm text-gray-500">
+                        Configure security policies
+                      </p>
                     </div>
-                    <Button variant="outline" size="sm">Configure</Button>
+                    <Button variant="outline" size="sm">
+                      Configure
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -479,35 +686,182 @@ export const AdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>System Maintenance</CardTitle>
-                  <CardDescription>Platform maintenance and monitoring</CardDescription>
+                  <CardDescription>
+                    Platform maintenance and monitoring
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Database Backup</p>
-                      <p className="text-sm text-gray-500">Last backup: 2 hours ago</p>
+                      <p className="text-sm text-gray-500">
+                        Last backup: 2 hours ago
+                      </p>
                     </div>
-                    <Button variant="outline" size="sm">Backup Now</Button>
+                    <Button variant="outline" size="sm">
+                      Backup Now
+                    </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">System Logs</p>
-                      <p className="text-sm text-gray-500">View system activity logs</p>
+                      <p className="text-sm text-gray-500">
+                        View system activity logs
+                      </p>
                     </div>
-                    <Button variant="outline" size="sm">View Logs</Button>
+                    <Button variant="outline" size="sm">
+                      View Logs
+                    </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Performance Monitor</p>
-                      <p className="text-sm text-gray-500">System performance metrics</p>
+                      <p className="text-sm text-gray-500">
+                        System performance metrics
+                      </p>
                     </div>
-                    <Button variant="outline" size="sm">View Metrics</Button>
+                    <Button variant="outline" size="sm">
+                      View Metrics
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Analytics Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6 flex flex-col items-center">
+              <BarChart3 className="h-8 w-8 text-blue-600 mb-2" />
+              <div className="text-2xl font-bold">
+                {analytics.eventAttendance}%
+              </div>
+              <div className="text-sm text-gray-600">Event Attendance</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex flex-col items-center">
+              <PieChart className="h-8 w-8 text-green-600 mb-2" />
+              <div className="text-2xl font-bold">
+                {analytics.venueUtilization}%
+              </div>
+              <div className="text-sm text-gray-600">Venue Utilization</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex flex-col items-center">
+              <FileText className="h-8 w-8 text-yellow-600 mb-2" />
+              <div className="text-2xl font-bold">
+                ₦{analytics.financialSummary.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600">Financial Summary</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex flex-col items-center">
+              <BarChart3 className="h-8 w-8 text-purple-600 mb-2" />
+              <div className="text-2xl font-bold">{analytics.engagement}</div>
+              <div className="text-sm text-gray-600">User Engagement</div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Analytics Charts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded shadow p-4">
+            <div className="font-semibold mb-2">Event Attendance Trends</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart
+                data={attendanceData}
+                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="attendance"
+                  stroke="#2563eb"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-white rounded shadow p-4">
+            <div className="font-semibold mb-2">Venue Utilization</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={venueData}
+                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="venue" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="utilization" fill="#22c55e" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-white rounded shadow p-4">
+            <div className="font-semibold mb-2">Financial Summary</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart
+                data={financeData}
+                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#facc15" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#facc15"
+                  fillOpacity={1}
+                  fill="url(#colorRev)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-white rounded shadow p-4">
+            <div className="font-semibold mb-2">User Engagement</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <RePieChart>
+                <Pie
+                  data={engagementData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  label
+                >
+                  {engagementData.map((entry, idx) => (
+                    <Cell
+                      key={`cell-${idx}`}
+                      fill={COLORS[idx % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </RePieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="mb-8 flex justify-end">
+          <Button size="sm" variant="outline" onClick={handleExportReport}>
+            <FileText className="h-4 w-4 mr-1" /> Export Report
+          </Button>
+        </div>
       </div>
     </div>
   );
