@@ -1,241 +1,286 @@
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, Users, DollarSign, User } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuthContext } from "@/components/auth/AuthProvider";
 
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  venue: string;
-  type: string;
-  status: string;
-  registered: boolean;
-  capacity: number;
-  registered_count: number;
-  registration_fee?: number;
-  organizer?: string;
-}
+import { useState } from 'react';
+import { useAuthContext } from '@/components/auth/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Calendar, MapPin, Users, DollarSign, Clock, 
+  User, Phone, Mail, CheckCircle, AlertCircle 
+} from 'lucide-react';
 
 interface EventRegistrationModalProps {
-  event: Event | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRegistrationSuccess?: () => void;
+  event: any;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-// Dummy payment integration for demo
-const StripeButton = ({ amount, onSuccess }) => (
-  <Button className="w-full" onClick={() => setTimeout(onSuccess, 1000)}>
-    Pay with Stripe (₦{amount})
-  </Button>
-);
-const PaystackButton = ({ amount, onSuccess }) => (
-  <Button className="w-full" onClick={() => setTimeout(onSuccess, 1000)}>
-    Pay with Paystack (₦{amount})
-  </Button>
-);
-
-export const EventRegistrationModal = ({
-  event,
-  open,
-  onOpenChange,
-  onRegistrationSuccess,
-}: EventRegistrationModalProps) => {
-  const { user } = useAuthContext();
+export const EventRegistrationModal = ({ event, onClose, onSuccess }: EventRegistrationModalProps) => {
+  const { user, profile } = useAuthContext();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState("pending");
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    specialRequirements: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+    dietaryRestrictions: '',
+    medicalConditions: ''
+  });
 
-  if (!event) return null;
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-  const handleRegister = async () => {
-    if (!user) return;
+  const handleRegistration = async () => {
+    if (!user || !event) return;
+
     setLoading(true);
     try {
-      if (
-        event.registration_fee &&
-        event.registration_fee > 0 &&
-        paymentStatus !== "paid"
-      ) {
-        setShowPayment(true);
-        setLoading(false);
-        return;
+      // Register for the event
+      const { error: registrationError } = await supabase
+        .from('event_registrations')
+        .insert({
+          event_id: String(event.id),
+          user_id: user.id,
+          payment_status: event.fee > 0 ? 'pending' : 'paid'
+        });
+
+      if (registrationError) {
+        throw registrationError;
       }
-      const { error } = await supabase.from("event_registrations").insert({
-        event_id: event.id,
-        user_id: user.id,
-        payment_status:
-          event.registration_fee && event.registration_fee > 0
-            ? "pending"
-            : "paid",
-        attendance_status: "registered",
-      });
-      if (error) throw error;
+
+      // If there's a fee, you would integrate with payment gateway here
+      if (event.fee > 0) {
+        // For now, we'll simulate payment processing
+        const paymentReference = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Update registration with payment reference
+        const { error: updateError } = await supabase
+          .from('event_registrations')
+          .update({ 
+            payment_reference: paymentReference,
+            payment_status: 'paid' // In real app, this would be updated by payment webhook
+          })
+          .eq('event_id', String(event.id))
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          console.error('Error updating payment reference:', updateError);
+        }
+      }
+
+      setStep(3); // Success step
       toast({
         title: "Registration Successful!",
-        description: `You have successfully registered for ${event.title}.`,
+        description: "You have been successfully registered for this event."
       });
-      onRegistrationSuccess?.();
-      onOpenChange(false);
+
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
+
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration Failed",
-        description: error.message,
-        variant: "destructive",
+        description: "There was an error registering for this event. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePaymentSuccess = async () => {
-    setPaymentStatus("paid");
-    setShowPayment(false);
-    // Update registration as paid
-    await supabase
-      .from("event_registrations")
-      .update({ payment_status: "paid" })
-      .eq("event_id", event.id)
-      .eq("user_id", user.id);
-    toast({
-      title: "Payment Successful",
-      description: "Your payment was received.",
-    });
-    onRegistrationSuccess?.();
-    onOpenChange(false);
-  };
+  const renderStep1 = () => (
+    <div className="space-y-4">
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Event Details</h3>
+        
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <span>{event.date} at {event.time}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-gray-500" />
+            <span>{event.venue}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gray-500" />
+            <span>{event.registered}/{event.capacity} registered</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-gray-500" />
+            <span>{event.fee === 0 ? 'Free' : `₦${event.fee.toLocaleString()}`}</span>
+          </div>
+        </div>
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "academic":
-        return "bg-blue-100 text-blue-800";
-      case "cultural":
-        return "bg-purple-100 text-purple-800";
-      case "sports":
-        return "bg-orange-100 text-orange-800";
-      case "conference":
-        return "bg-indigo-100 text-indigo-800";
-      case "workshop":
-        return "bg-teal-100 text-teal-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+        <div>
+          <h4 className="font-medium mb-2">Description</h4>
+          <p className="text-gray-600 text-sm">{event.description}</p>
+        </div>
 
-  const isFull = event.registered_count >= event.capacity;
-  const spotsLeft = event.capacity - event.registered_count;
+        <div>
+          <h4 className="font-medium mb-2">Organizer</h4>
+          <p className="text-gray-600 text-sm">{event.organizer}</p>
+        </div>
+      </div>
+
+      <div className="flex justify-between pt-4">
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={() => setStep(2)}>
+          Continue Registration
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-4">
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Registration Information</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input 
+              id="name" 
+              value={profile?.full_name || ''} 
+              disabled 
+              className="bg-gray-50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              value={profile?.email || ''} 
+              disabled 
+              className="bg-gray-50"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="emergencyContact">Emergency Contact Name</Label>
+            <Input
+              id="emergencyContact"
+              value={formData.emergencyContact}
+              onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+              placeholder="Enter emergency contact name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="emergencyPhone">Emergency Contact Phone</Label>
+            <Input
+              id="emergencyPhone"
+              value={formData.emergencyPhone}
+              onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
+              placeholder="Enter emergency contact phone"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="dietaryRestrictions">Dietary Restrictions</Label>
+          <Textarea
+            id="dietaryRestrictions"
+            value={formData.dietaryRestrictions}
+            onChange={(e) => handleInputChange('dietaryRestrictions', e.target.value)}
+            placeholder="Any dietary restrictions or allergies?"
+            rows={2}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="medicalConditions">Medical Conditions</Label>
+          <Textarea
+            id="medicalConditions"
+            value={formData.medicalConditions}
+            onChange={(e) => handleInputChange('medicalConditions', e.target.value)}
+            placeholder="Any medical conditions we should be aware of?"
+            rows={2}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="specialRequirements">Special Requirements</Label>
+          <Textarea
+            id="specialRequirements"
+            value={formData.specialRequirements}
+            onChange={(e) => handleInputChange('specialRequirements', e.target.value)}
+            placeholder="Any special requirements or accessibility needs?"
+            rows={3}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-between pt-4">
+        <Button variant="outline" onClick={() => setStep(1)}>
+          Back
+        </Button>
+        <Button onClick={handleRegistration} disabled={loading}>
+          {loading ? 'Registering...' : 'Complete Registration'}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="text-center space-y-4 py-8">
+      <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
+      <h3 className="text-xl font-bold text-green-800">Registration Successful!</</h3>
+      <p className="text-gray-600">
+        You have been successfully registered for <strong>{event.title}</strong>
+      </p>
+      <p className="text-sm text-gray-500">
+        You will receive a confirmation email shortly with event details.
+      </p>
+      <Button onClick={onSuccess} className="mt-4">
+        Done
+      </Button>
+    </div>
+  );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <DialogTitle className="text-xl">{event.title}</DialogTitle>
-            <Badge className={getTypeColor(event.type)}>{event.type}</Badge>
-          </div>
-          <DialogDescription className="text-left">
-            {event.description}
-          </DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Register for Event
+          </DialogTitle>
         </DialogHeader>
-        {showPayment ? (
-          <div className="space-y-4">
-            <div className="text-center font-semibold">
-              Pay Registration Fee
-            </div>
-            <StripeButton
-              amount={event.registration_fee}
-              onSuccess={handlePaymentSuccess}
-            />
-            <PaystackButton
-              amount={event.registration_fee}
-              onSuccess={handlePaymentSuccess}
-            />
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setShowPayment(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Event Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="h-4 w-4" />
-                <span>{event.date}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>{event.time}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="h-4 w-4" />
-                <span>{event.venue}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Users className="h-4 w-4" />
-                <span>
-                  {event.registered_count}/{event.capacity} registered
-                </span>
-              </div>
-              {event.registration_fee && event.registration_fee > 0 && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <DollarSign className="h-4 w-4" />
-                  <span>₦{event.registration_fee.toLocaleString()}</span>
-                  <Badge
-                    variant={paymentStatus === "paid" ? "success" : "outline"}
-                  >
-                    {paymentStatus === "paid" ? "Paid" : "Pending"}
-                  </Badge>
-                </div>
-              )}
-              {event.organizer && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="h-4 w-4" />
-                  <span>{event.organizer}</span>
-                </div>
+
+        <Card className="border-0 shadow-none">
+          <CardHeader className="px-0 pb-4">
+            <CardTitle className="text-lg">{event.title}</CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{event.category}</Badge>
+              {event.fee > 0 && (
+                <Badge variant="outline" className="text-green-600">
+                  ₦{event.fee.toLocaleString()}
+                </Badge>
               )}
             </div>
-            {/* Registration Status */}
-            <div className="flex flex-col gap-2">
-              <Button
-                onClick={handleRegister}
-                disabled={
-                  loading ||
-                  (event.registration_fee > 0 && paymentStatus !== "paid") ||
-                  isFull
-                }
-              >
-                {loading
-                  ? "Registering..."
-                  : event.registration_fee > 0
-                    ? paymentStatus === "paid"
-                      ? "Register"
-                      : "Pay to Register"
-                    : "Register"}
-              </Button>
-              {isFull && (
-                <div className="text-red-600 text-xs">Event is full</div>
-              )}
-            </div>
-          </div>
-        )}
+          </CardHeader>
+          <CardContent className="px-0">
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+            {step === 3 && renderStep3()}
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   );

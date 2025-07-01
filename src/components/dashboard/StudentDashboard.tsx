@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EventRegistrationModal } from './EventRegistrationModal';
 import { CreateEvent } from './CreateEvent';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   GraduationCap, Calendar, Users, MapPin, Clock, 
   Star, Trophy, BookOpen, Plus, Eye, Search, Filter
@@ -18,6 +19,8 @@ export const StudentDashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [myEvents, setMyEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Mock data for demonstration
   const studentStats = {
@@ -62,7 +65,7 @@ export const StudentDashboard = () => {
       description: "Celebrate diversity through music, dance, and traditional performances.",
       date: "2024-02-25",
       time: "6:00 PM",
-      venue: "Eti-Osa Campus",
+      venue: "Eti-Osa Hall",
       organizer: "Cultural Affairs Office",
       capacity: 300,
       registered: 156,
@@ -91,11 +94,32 @@ export const StudentDashboard = () => {
     }
   ];
 
-  const achievements = [
-    { title: "Active Participant", description: "Attended 10+ events", icon: Trophy, color: "text-yellow-600" },
-    { title: "Knowledge Seeker", description: "Completed 5 workshops", icon: BookOpen, color: "text-blue-600" },
-    { title: "Community Leader", description: "Organized 2 events", icon: Users, color: "text-green-600" }
-  ];
+  // Fetch user's created events
+  useEffect(() => {
+    const fetchMyEvents = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: events, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('organizer_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching events:', error);
+        } else {
+          setMyEvents(events || []);
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyEvents();
+  }, [user]);
 
   const handleRegisterForEvent = (event) => {
     setSelectedEvent(event);
@@ -107,6 +131,10 @@ export const StudentDashboard = () => {
       case 'attended': return 'bg-green-100 text-green-800';
       case 'registered': return 'bg-blue-100 text-blue-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'draft': return 'bg-gray-100 text-gray-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -143,7 +171,7 @@ export const StudentDashboard = () => {
             onBack={() => setShowCreateEvent(false)}
             onSuccess={() => {
               setShowCreateEvent(false);
-              setActiveTab('events');
+              setActiveTab('my-events');
             }}
           />
         </div>
@@ -167,7 +195,7 @@ export const StudentDashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {profile?.role?.replace('_', ' ').toUpperCase()}
+                {profile?.user_type?.toUpperCase()}
               </Badge>
               <Button variant="outline" onClick={signOut}>
                 Sign Out
@@ -183,7 +211,7 @@ export const StudentDashboard = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="events">Discover Events</TabsTrigger>
             <TabsTrigger value="registrations">My Events</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="my-events">Created Events</TabsTrigger>
             <TabsTrigger value="create">Create Event</TabsTrigger>
           </TabsList>
 
@@ -230,8 +258,8 @@ export const StudentDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Points</p>
-                      <p className="text-2xl font-bold text-gray-900">{studentStats.totalPoints}</p>
+                      <p className="text-sm font-medium text-gray-600">Events Created</p>
+                      <p className="text-2xl font-bold text-gray-900">{myEvents.length}</p>
                     </div>
                     <Star className="h-8 w-8 text-purple-600" />
                   </div>
@@ -239,7 +267,7 @@ export const StudentDashboard = () => {
               </Card>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
@@ -278,20 +306,31 @@ export const StudentDashboard = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Achievements</CardTitle>
-                  <CardDescription>Your latest accomplishments</CardDescription>
+                  <CardTitle>My Created Events</CardTitle>
+                  <CardDescription>Events you have created</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {achievements.map((achievement, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                        <achievement.icon className={`h-6 w-6 ${achievement.color}`} />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{achievement.title}</h4>
-                          <p className="text-sm text-gray-500">{achievement.description}</p>
+                    {myEvents.length > 0 ? (
+                      myEvents.slice(0, 3).map((event) => (
+                        <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">{event.title}</h4>
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(event.start_date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          <Badge className={getStatusColor(event.status)}>
+                            {event.status}
+                          </Badge>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">No events created yet</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -421,22 +460,79 @@ export const StudentDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="achievements" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Achievements</h2>
-              <p className="text-gray-600 mt-1">Your accomplishments and certificates</p>
+          <TabsContent value="my-events" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">My Created Events</h2>
+                <p className="text-gray-600 mt-1">Events you have created and their status</p>
+              </div>
+              <Button onClick={() => setShowCreateEvent(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Event
+              </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {achievements.map((achievement, index) => (
-                <Card key={index}>
-                  <CardContent className="p-6 text-center">
-                    <achievement.icon className={`h-12 w-12 mx-auto mb-4 ${achievement.color}`} />
-                    <h3 className="font-semibold text-lg mb-2">{achievement.title}</h3>
-                    <p className="text-gray-600 text-sm">{achievement.description}</p>
+            <div className="space-y-4">
+              {loading ? (
+                <div className="text-center py-8">Loading your events...</div>
+              ) : myEvents.length > 0 ? (
+                myEvents.map((event) => (
+                  <Card key={event.id}>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
+                            <Badge className={getStatusColor(event.status)}>
+                              {event.status}
+                            </Badge>
+                          </div>
+                          <p className="text-gray-600 mb-3">{event.description}</p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                            <div>
+                              <span className="font-medium">Start Date:</span> {new Date(event.start_date).toLocaleDateString()}
+                            </div>
+                            <div>
+                              <span className="font-medium">End Date:</span> {new Date(event.end_date).toLocaleDateString()}
+                            </div>
+                            <div>
+                              <span className="font-medium">Type:</span> {event.event_type}
+                            </div>
+                            <div>
+                              <span className="font-medium">Max Participants:</span> {event.max_participants || 'No limit'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          {event.status === 'draft' && (
+                            <Button size="sm" variant="outline">
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Calendar className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Events Created Yet</h3>
+                    <p className="text-gray-600 mb-4">
+                      You haven't created any events yet. Start by creating your first event!
+                    </p>
+                    <Button onClick={() => setShowCreateEvent(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Event
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </TabsContent>
 
@@ -465,16 +561,14 @@ export const StudentDashboard = () => {
       </div>
 
       {/* Event Registration Modal */}
-      {showRegistrationModal && (
+      {showRegistrationModal && selectedEvent && (
         <EventRegistrationModal
           event={selectedEvent}
           onClose={() => {
             setShowRegistrationModal(false);
             setSelectedEvent(null);
           }}
-          onRegister={(eventId) => {
-            // Handle registration logic
-            console.log('Registered for event:', eventId);
+          onSuccess={() => {
             setShowRegistrationModal(false);
             setSelectedEvent(null);
           }}

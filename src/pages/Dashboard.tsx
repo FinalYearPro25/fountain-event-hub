@@ -1,10 +1,10 @@
+
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Navigate } from "react-router-dom";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { DeanDashboard } from "@/components/dashboard/DeanDashboard";
 import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
-import { ApprovalQueue } from "@/components/dashboard/ApprovalQueue";
 
 export default function Dashboard() {
   const { user, profile, loading } = useAuthContext();
@@ -30,35 +30,33 @@ export default function Dashboard() {
     );
   }
 
-  // Route based on user role
+  // Route based on user role and user_type
   const userRole = profile.role || "student";
+  const userType = profile.user_type;
 
-  // Show ApprovalQueue for approver roles
-  if (
-    [
-      "super_admin",
-      "senate_member",
-      "dean",
-      "department_head",
-      "event_coordinator",
-    ].includes(userRole)
-  ) {
-    return <ApprovalQueue />;
-  }
+  console.log("User routing - Role:", userRole, "Type:", userType, "Profile:", profile);
 
-  switch (userRole) {
-    case "super_admin":
-    case "senate_member":
-      return <AdminDashboard />;
-    case "dean":
-    case "department_head":
-      return <DeanDashboard />;
+  // Route based on user_type first, then role for specific permissions
+  switch (userType) {
     case "staff":
-    case "event_coordinator":
       return <StaffDashboard />;
     case "student":
-    case "outsider":
-    default:
       return <StudentDashboard />;
+    case "outsider":
+      return <StudentDashboard />;
+    default:
+      // Fallback to role-based routing for admin functions
+      switch (userRole) {
+        case "super_admin":
+        case "senate_member":
+          return <AdminDashboard />;
+        case "dean":
+        case "department_head":
+          return <DeanDashboard />;
+        case "event_coordinator":
+          return <StaffDashboard />;
+        default:
+          return <StudentDashboard />;
+      }
   }
 }

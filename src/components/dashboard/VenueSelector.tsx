@@ -22,13 +22,12 @@ export const VenueSelector = ({
   const [venues, setVenues] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ type: "", capacity: "", college: "" });
 
-  // Mock venues data with the specific locations you mentioned
+  // Updated venues data with your specified locations
   const mockVenues = [
     {
-      id: "eti-osa",
-      name: "Eti-Osa Campus",
+      id: "eti-osa-hall",
+      name: "Eti-Osa Hall",
       venue_type: "hall",
       capacity: 300,
       location_description: "Main campus auditorium",
@@ -67,7 +66,7 @@ export const VenueSelector = ({
       is_active: true
     },
     {
-      id: "amina-namadi-sambo",
+      id: "amina-namadi-sambo-hall",
       name: "Amina Namadi Sambo Hall",
       venue_type: "auditorium",
       capacity: 500,
@@ -181,22 +180,12 @@ export const VenueSelector = ({
     );
   };
 
-  const filteredVenues = venues.filter(
-    (v) =>
-      (!filter.type || v.venue_type === filter.type) &&
-      (!filter.capacity || v.capacity >= parseInt(filter.capacity)) &&
-      (!filter.college || v.college_id === filter.college)
-  );
-
   if (loading) return <div>Loading venues...</div>;
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 mb-2">
-        {/* Add filter controls here if needed */}
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredVenues.map((venue) => {
+        {venues.map((venue) => {
           const available = isVenueAvailable(venue.id);
           return (
             <Card
