@@ -12,6 +12,7 @@ import { VenueSelector } from './VenueSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, MapPin, Users, DollarSign, Clock, Plus, X, Upload, Image } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 interface CreateEventFormProps {
   onSuccess?: () => void;
@@ -49,12 +50,9 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
     { value: 'workshop', label: 'Workshop' },
     { value: 'seminar', label: 'Seminar' },
     { value: 'conference', label: 'Conference' },
-    { value: 'social', label: 'Social Event' },
-    { value: 'competition', label: 'Competition' },
     { value: 'cultural', label: 'Cultural Event' },
     { value: 'academic', label: 'Academic Event' },
-    { value: 'sports', label: 'Sports Event' },
-    { value: 'other', label: 'Other' }
+    { value: 'sports', label: 'Sports Event' }
   ];
 
   const categories = [
@@ -90,13 +88,52 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
     }));
   };
 
+  const ensureStorageBucket = async () => {
+    try {
+      // Check if bucket exists
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+      
+      if (listError) {
+        console.error('Error listing buckets:', listError);
+        return false;
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.name === 'event-images');
+      
+      if (!bucketExists) {
+        // Create the bucket
+        const { error: createError } = await supabase.storage.createBucket('event-images', {
+          public: true,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+          fileSizeLimit: 5242880 // 5MB
+        });
+
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error ensuring storage bucket:', error);
+      return false;
+    }
+  };
+
   const handleImageUpload = async (file: File) => {
-    if (!user) return;
+    if (!user) return null;
 
     setUploadingImage(true);
     try {
+      // Ensure bucket exists
+      const bucketReady = await ensureStorageBucket();
+      if (!bucketReady) {
+        throw new Error('Storage bucket not available');
+      }
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}_${uuidv4()}.${fileExt}`;
       const filePath = `event-banners/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -118,6 +155,8 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
         title: "Image uploaded successfully!",
         description: "Your event banner has been uploaded."
       });
+
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
@@ -125,6 +164,7 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
         description: "There was an error uploading your image. Please try again.",
         variant: "destructive"
       });
+      return null;
     } finally {
       setUploadingImage(false);
     }
@@ -173,9 +213,14 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
 
     setLoading(true);
     try {
+      let bannerUrl = formData.bannerImageUrl;
+
       // Upload image if file is selected
       if (imageFile) {
-        await handleImageUpload(imageFile);
+        const uploadedUrl = await handleImageUpload(imageFile);
+        if (uploadedUrl) {
+          bannerUrl = uploadedUrl;
+        }
       }
 
       // Create the event
@@ -188,10 +233,12 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
         max_participants: formData.maxParticipants ? parseInt(formData.maxParticipants) : null,
         registration_fee: formData.registrationFee ? parseFloat(formData.registrationFee) : 0,
         venue_id: formData.venueId,
-        banner_image_url: formData.bannerImageUrl,
+        banner_image_url: bannerUrl,
         organizer_id: user.id,
         status: 'draft' as any
       };
+
+      console.log('Creating event with data:', eventData);
 
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -200,8 +247,11 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
         .single();
 
       if (eventError) {
+        console.error('Event creation error:', eventError);
         throw eventError;
       }
+
+      console.log('Event created successfully:', event);
 
       // Add resources if any
       if (formData.resources.length > 0) {
@@ -232,7 +282,7 @@ export const CreateEventForm = ({ onSuccess, onCancel }: CreateEventFormProps) =
       console.error('Error creating event:', error);
       toast({
         title: "Error Creating Event",
-        description: "There was an error creating your event. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error creating your event. Please try again.",
         variant: "destructive"
       });
     } finally {

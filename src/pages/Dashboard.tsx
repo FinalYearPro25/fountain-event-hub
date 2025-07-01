@@ -46,8 +46,8 @@ export default function Dashboard() {
     return <DeanDashboard />;
   }
 
-  // Then check for staff roles or event coordinators
-  if (userRole === "event_coordinator" || userType === "staff") {
+  // Check for staff roles or event coordinators - FIXED: Check both role and user_type
+  if (userRole === "event_coordinator" || userRole === "staff" || userType === "staff") {
     return <StaffDashboard />;
   }
 

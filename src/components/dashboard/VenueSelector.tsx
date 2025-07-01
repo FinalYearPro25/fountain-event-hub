@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -22,7 +23,7 @@ export const VenueSelector = ({
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Updated venues data with your specified locations
+  // Updated venues data with the correct venue names
   const mockVenues = [
     {
       id: "eti-osa-hall",
@@ -30,7 +31,6 @@ export const VenueSelector = ({
       venue_type: "hall",
       capacity: 300,
       location_description: "Main campus auditorium",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -40,7 +40,6 @@ export const VenueSelector = ({
       venue_type: "conference_room",
       capacity: 150,
       location_description: "Conference and meeting hall",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -50,7 +49,6 @@ export const VenueSelector = ({
       venue_type: "classroom",
       capacity: 120,
       location_description: "Large lecture room",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1487252665478-49b61b47f302?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -60,7 +58,6 @@ export const VenueSelector = ({
       venue_type: "classroom",
       capacity: 200,
       location_description: "Large lecture theatre",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1466442929976-97f336a657be?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -70,7 +67,6 @@ export const VenueSelector = ({
       venue_type: "auditorium",
       capacity: 500,
       location_description: "Main auditorium for large events",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -80,7 +76,6 @@ export const VenueSelector = ({
       venue_type: "conference_room",
       capacity: 80,
       location_description: "Conference rooms and seminar halls",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -90,7 +85,6 @@ export const VenueSelector = ({
       venue_type: "classroom",
       capacity: 100,
       location_description: "Law faculty lecture halls",
-      college_id: "law",
       images: ["https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -100,7 +94,6 @@ export const VenueSelector = ({
       venue_type: "hall",
       capacity: 150,
       location_description: "Arts and humanities facilities",
-      college_id: "arts",
       images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -110,7 +103,6 @@ export const VenueSelector = ({
       venue_type: "conference_room",
       capacity: 90,
       location_description: "Medical school conference rooms",
-      college_id: "medical",
       images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop"],
       is_active: true
     },
@@ -120,7 +112,6 @@ export const VenueSelector = ({
       venue_type: "hall",
       capacity: 250,
       location_description: "Modern conference and event facility",
-      college_id: "general",
       images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop"],
       is_active: true
     }
@@ -200,8 +191,14 @@ export const VenueSelector = ({
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 text-sm mb-2">
-                  <Users className="h-4 w-4" /> Capacity: {venue.capacity}
-                  <MapPin className="h-4 w-4" /> {venue.college_id}
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    <span>Capacity: {venue.capacity}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    <span>Campus</span>
+                  </div>
                 </div>
                 {venue.images && venue.images.length > 0 && (
                   <img
