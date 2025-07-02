@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Badge } from '@/components/ui/badge';
 import { VenueSelector } from './VenueSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Upload, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type EventType = Database['public']['Enums']['event_type'];
+type EventStatus = Database['public']['Enums']['event_status'];
 
 interface CreateEventFormProps {
   onClose: () => void;
@@ -30,7 +32,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    eventType: '',
+    eventType: '' as EventType,
     startDate: new Date(),
     endDate: new Date(),
     startTime: '09:00',
@@ -117,7 +119,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
       const eventData = {
         title: formData.title,
         description: formData.description,
-        event_type: formData.eventType,
+        event_type: formData.eventType as EventType,
         start_date: startDateTime.toISOString(),
         end_date: endDateTime.toISOString(),
         max_participants: formData.maxParticipants ? parseInt(formData.maxParticipants) : null,
@@ -125,12 +127,12 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
         venue_id: formData.venueId || null,
         organizer_id: user.id,
         banner_image_url: bannerUrl,
-        status: 'draft'
+        status: 'draft' as EventStatus
       };
 
       const { data, error } = await supabase
         .from('events')
-        .insert([eventData])
+        .insert(eventData)
         .select()
         .single();
 
@@ -186,7 +188,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
 
               <div className="space-y-2">
                 <Label htmlFor="eventType">Event Type</Label>
-                <Select onValueChange={(value) => handleInputChange('eventType', value)} required>
+                <Select onValueChange={(value) => handleInputChange('eventType', value as EventType)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select event type" />
                   </SelectTrigger>
@@ -256,8 +258,11 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
             <div className="space-y-2">
               <Label>Venue</Label>
               <VenueSelector
-                selectedVenue={formData.venueId}
-                onVenueSelect={(venueId) => handleInputChange('venueId', venueId)}
+                selectedDate={format(formData.startDate, 'yyyy-MM-dd')}
+                selectedStartTime={formData.startTime}
+                selectedEndTime={formData.endTime}
+                onSelectVenue={(venueId) => handleInputChange('venueId', venueId)}
+                value={formData.venueId}
               />
             </div>
 
