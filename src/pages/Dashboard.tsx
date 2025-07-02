@@ -30,11 +30,10 @@ export default function Dashboard() {
     );
   }
 
-  // Get user role and type
+  // Get user role from the profile
   const userRole = profile.role || "student";
-  const userType = profile.user_type;
 
-  console.log("Dashboard routing - Role:", userRole, "Type:", userType, "Profile:", profile);
+  console.log("Dashboard routing - Role:", userRole, "Profile:", profile);
 
   // Admin roles - super_admin, senate_member
   if (userRole === "super_admin" || userRole === "senate_member") {
@@ -48,10 +47,16 @@ export default function Dashboard() {
     return <DeanDashboard />;
   }
 
-  // Staff roles - Check both role and user_type for staff
-  if (userRole === "staff" || userRole === "event_coordinator" || userType === "staff") {
+  // Staff roles - staff, event_coordinator
+  if (userRole === "staff" || userRole === "event_coordinator") {
     console.log("Routing to StaffDashboard");
     return <StaffDashboard />;
+  }
+
+  // Outsider role
+  if (userRole === "outsider") {
+    console.log("Routing to StudentDashboard for outsider");
+    return <StudentDashboard />;
   }
 
   // Default to student dashboard

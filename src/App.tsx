@@ -23,6 +23,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/verify" element={<VerifyCertificate />} />
+            
+            {/* Role-specific route redirects - all redirect to /dashboard for proper role-based routing */}
+            <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/dean/dashboard" element={<Dashboard />} />
+            <Route path="/staff/dashboard" element={<Dashboard />} />
+            <Route path="/student/dashboard" element={<Dashboard />} />
+            <Route path="/outsider/dashboard" element={<Dashboard />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

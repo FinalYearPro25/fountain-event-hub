@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -124,7 +123,6 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
             full_name: formData.fullName,
             phone_number: formData.phone,
             user_type: userType,
-            user_role: userRole,
             student_id: formData.studentId,
             staff_id: formData.staffId,
             college: formData.college,
@@ -151,12 +149,28 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
             variant: "destructive",
           });
         }
-      } else {
+      } else if (data.user) {
+        // After successful registration, add the user role to the user_roles table
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: userRole
+          });
+
+        if (roleError) {
+          console.error('Error assigning role:', roleError);
+          toast({
+            title: "Registration Warning",
+            description: "Account created but role assignment failed. Please contact support.",
+            variant: "destructive",
+          });
+        }
+
         setRegistrationSuccess(true);
         toast({
           title: "Registration Successful!",
-          description:
-            "Please check your email to verify your account, then you can log in.",
+          description: `Account created with role: ${roles.find(r => r.value === userRole)?.label}. Please check your email to verify your account.`,
         });
         setStep(4);
       }
@@ -430,6 +444,9 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
     registrationSuccess ? (
       <div className="space-y-6 text-center">
         <h2 className="text-xl font-bold">Registration Successful!</h2>
+        <p className="text-gray-600">
+          Your account has been created with the role: <strong>{roles.find(r => r.value === userRole)?.label}</strong>
+        </p>
         <p className="text-gray-600">
           Please check your email to verify your account, then you can log in.
         </p>
