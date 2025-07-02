@@ -27,15 +27,18 @@ import { Badge } from "@/components/ui/badge";
 import { User, Users, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
 
 interface RegisterDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+type AppRole = Database['public']['Enums']['app_role'];
+
 export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   const [userType, setUserType] = useState("");
-  const [userRole, setUserRole] = useState("");
+  const [userRole, setUserRole] = useState<AppRole | "">("");
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -61,14 +64,14 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   ];
 
   const roles = [
-    { value: "student", label: "Student", userTypes: ["student"] },
-    { value: "staff", label: "Staff Member", userTypes: ["staff"] },
-    { value: "event_coordinator", label: "Event Coordinator", userTypes: ["staff"] },
-    { value: "department_head", label: "Department Head", userTypes: ["staff"] },
-    { value: "dean", label: "Dean", userTypes: ["staff"] },
-    { value: "senate_member", label: "Senate Member", userTypes: ["staff"] },
-    { value: "super_admin", label: "Super Admin", userTypes: ["staff"] },
-    { value: "outsider", label: "External/Guest", userTypes: ["outsider"] }
+    { value: "student" as AppRole, label: "Student", userTypes: ["student"] },
+    { value: "staff" as AppRole, label: "Staff Member", userTypes: ["staff"] },
+    { value: "event_coordinator" as AppRole, label: "Event Coordinator", userTypes: ["staff"] },
+    { value: "department_head" as AppRole, label: "Department Head", userTypes: ["staff"] },
+    { value: "dean" as AppRole, label: "Dean", userTypes: ["staff"] },
+    { value: "senate_member" as AppRole, label: "Senate Member", userTypes: ["staff"] },
+    { value: "super_admin" as AppRole, label: "Super Admin", userTypes: ["staff"] },
+    { value: "outsider" as AppRole, label: "External/Guest", userTypes: ["outsider"] }
   ];
 
   useEffect(() => {
@@ -149,13 +152,13 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
             variant: "destructive",
           });
         }
-      } else if (data.user) {
+      } else if (data.user && userRole) {
         // After successful registration, add the user role to the user_roles table
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: data.user.id,
-            role: userRole
+            role: userRole as AppRole
           });
 
         if (roleError) {
@@ -272,7 +275,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
     <div className="space-y-6">
       <div className="space-y-3">
         <Label className="text-base font-medium">Select your role:</Label>
-        <Select onValueChange={(value) => setUserRole(value)} required>
+        <Select onValueChange={(value: AppRole) => setUserRole(value)} required>
           <SelectTrigger>
             <SelectValue placeholder="Select your role" />
           </SelectTrigger>
