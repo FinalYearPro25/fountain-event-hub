@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -35,6 +36,7 @@ interface RegisterDialogProps {
 
 export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   const [userType, setUserType] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -59,9 +61,21 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
     "College of Law",
   ];
 
+  const roles = [
+    { value: "student", label: "Student", userTypes: ["student"] },
+    { value: "staff", label: "Staff Member", userTypes: ["staff"] },
+    { value: "event_coordinator", label: "Event Coordinator", userTypes: ["staff"] },
+    { value: "department_head", label: "Department Head", userTypes: ["staff"] },
+    { value: "dean", label: "Dean", userTypes: ["staff"] },
+    { value: "senate_member", label: "Senate Member", userTypes: ["staff"] },
+    { value: "super_admin", label: "Super Admin", userTypes: ["staff"] },
+    { value: "outsider", label: "External/Guest", userTypes: ["outsider"] }
+  ];
+
   useEffect(() => {
     if (!open) {
       setUserType("");
+      setUserRole("");
       setFormData({
         fullName: "",
         email: "",
@@ -99,6 +113,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
       try {
         await supabase.auth.signOut({ scope: "global" });
       } catch (err) {}
+      
       const redirectUrl = `${window.location.origin}/dashboard`;
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -109,6 +124,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
             full_name: formData.fullName,
             phone_number: formData.phone,
             user_type: userType,
+            user_role: userRole,
             student_id: formData.studentId,
             staff_id: formData.staffId,
             college: formData.college,
@@ -119,6 +135,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           },
         },
       });
+      
       if (error) {
         if (error.message.includes("User already registered")) {
           toast({
@@ -185,6 +202,10 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
     },
   ];
 
+  const getAvailableRoles = () => {
+    return roles.filter(role => role.userTypes.includes(userType));
+  };
+
   // Step 1: User Type Selection
   const renderStep1 = () => (
     <div className="space-y-6">
@@ -232,12 +253,45 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
     </div>
   );
 
-  // Step 2: Account Details
+  // Step 2: Role Selection
   const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <Label className="text-base font-medium">Select your role:</Label>
+        <Select onValueChange={(value) => setUserRole(value)} required>
+          <SelectTrigger>
+            <SelectValue placeholder="Select your role" />
+          </SelectTrigger>
+          <SelectContent>
+            {getAvailableRoles().map((role) => (
+              <SelectItem key={role.value} value={role.value}>
+                {role.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex justify-between">
+        <Button variant="outline" type="button" onClick={() => setStep(1)}>
+          Back
+        </Button>
+        <Button 
+          type="button" 
+          onClick={() => setStep(3)}
+          disabled={!userRole}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Step 3: Account Details
+  const renderStep3 = () => (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        setStep(3);
+        setStep(4);
       }}
       className="space-y-4"
     >
@@ -286,24 +340,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           required
         />
       </div>
-      <div className="flex justify-between">
-        <Button variant="outline" type="button" onClick={() => setStep(1)}>
-          Back
-        </Button>
-        <Button type="submit">Next</Button>
-      </div>
-    </form>
-  );
 
-  // Step 3: Profile Details
-  const renderStep3 = () => (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setStep(4);
-      }}
-      className="space-y-4"
-    >
       {/* Student-specific fields */}
       {userType === "student" && (
         <div className="grid grid-cols-2 gap-4">
@@ -335,6 +372,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           </div>
         </div>
       )}
+
       {/* Staff-specific fields */}
       {userType === "staff" && (
         <div className="space-y-2">
@@ -347,6 +385,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           />
         </div>
       )}
+
       {/* College and Department for students and staff */}
       {(userType === "student" || userType === "staff") && (
         <>
@@ -376,6 +415,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           </div>
         </>
       )}
+
       <div className="flex justify-between">
         <Button variant="outline" type="button" onClick={() => setStep(2)}>
           Back
@@ -403,7 +443,10 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           <h2 className="text-lg font-semibold">Confirm Your Details</h2>
           <ul className="text-sm text-gray-700 space-y-1">
             <li>
-              <b>Role:</b> {userType}
+              <b>User Type:</b> {userType}
+            </li>
+            <li>
+              <b>Role:</b> {roles.find(r => r.value === userRole)?.label}
             </li>
             <li>
               <b>Full Name:</b> {formData.fullName}
@@ -415,14 +458,14 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
               <b>Email:</b> {formData.email}
             </li>
             {userType === "student" && (
-              <li>
-                <b>Student ID:</b> {formData.studentId}
-              </li>
-            )}
-            {userType === "student" && (
-              <li>
-                <b>Year of Study:</b> {formData.yearOfStudy}
-              </li>
+              <>
+                <li>
+                  <b>Student ID:</b> {formData.studentId}
+                </li>
+                <li>
+                  <b>Year of Study:</b> {formData.yearOfStudy}
+                </li>
+              </>
             )}
             {userType === "staff" && (
               <li>
@@ -430,14 +473,14 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
               </li>
             )}
             {(userType === "student" || userType === "staff") && (
-              <li>
-                <b>College:</b> {formData.college}
-              </li>
-            )}
-            {(userType === "student" || userType === "staff") && (
-              <li>
-                <b>Department:</b> {formData.department}
-              </li>
+              <>
+                <li>
+                  <b>College:</b> {formData.college}
+                </li>
+                <li>
+                  <b>Department:</b> {formData.department}
+                </li>
+              </>
             )}
           </ul>
         </div>
@@ -463,7 +506,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
             Create your account to start managing campus events
           </DialogDescription>
         </DialogHeader>
-        {/* Stepper UI (optional) */}
+        {/* Stepper UI */}
         <div className="flex justify-center gap-2 mb-4">
           {[1, 2, 3, 4].map((s) => (
             <div

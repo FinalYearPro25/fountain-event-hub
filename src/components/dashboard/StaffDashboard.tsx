@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -124,11 +125,11 @@ export const StaffDashboard = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <CreateEventForm 
-            onSuccess={() => {
+            onClose={() => setShowCreateForm(false)}
+            onEventCreated={() => {
               setShowCreateForm(false);
               setActiveTab('events');
             }}
-            onCancel={() => setShowCreateForm(false)}
           />
         </div>
       </div>
@@ -147,6 +148,7 @@ export const StaffDashboard = () => {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Staff Dashboard</h1>
                 <p className="text-sm text-gray-500">Event Management & Organization</p>
+                <p className="text-xs text-green-600">Welcome, {profile?.role?.replace('_', ' ').toUpperCase()} User</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
