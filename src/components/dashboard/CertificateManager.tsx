@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,13 +124,17 @@ export const CertificateManager = () => {
       // Generate a unique verification code
       const verificationCode = uuidv4();
       // Insert certificate record into Supabase
-      await supabase.from("certificates").insert({
-        user_id: attendee.id,
-        event_id: selectedEvent,
-        issued_at: new Date().toISOString(),
-        verification_code: verificationCode,
-        status: "issued",
-      });
+      try {
+        await supabase.from("certificates").insert({
+          user_id: attendee.id,
+          event_id: selectedEvent,
+          issued_at: new Date().toISOString(),
+          verification_code: verificationCode,
+          status: "issued",
+        });
+      } catch (error) {
+        console.error("Error inserting certificate:", error);
+      }
       const verificationUrl = `${window.location.origin}/verify?code=${verificationCode}`;
       const pdfBlob = await generateCertificatePDF({
         attendeeName: attendee.name,
@@ -172,13 +177,17 @@ export const CertificateManager = () => {
     const date = new Date().toLocaleDateString();
     for (const attendee of toIssue) {
       const verificationCode = uuidv4();
-      await supabase.from("certificates").insert({
-        user_id: attendee.id,
-        event_id: selectedEvent,
-        issued_at: new Date().toISOString(),
-        verification_code: verificationCode,
-        status: "issued",
-      });
+      try {
+        await supabase.from("certificates").insert({
+          user_id: attendee.id,
+          event_id: selectedEvent,
+          issued_at: new Date().toISOString(),
+          verification_code: verificationCode,
+          status: "issued",
+        });
+      } catch (error) {
+        console.error("Error inserting certificate:", error);
+      }
       // Email logic would go here, using verificationUrl
     }
     setTimeout(() => {

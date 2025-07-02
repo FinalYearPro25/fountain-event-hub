@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,9 +9,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-// NOTE: 'notifications' is a custom table not in Supabase generated types, so we use 'any' for type safety.
+interface Notification {
+  id: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 export const NotificationBell = ({ userId }) => {
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
 
@@ -18,7 +25,7 @@ export const NotificationBell = ({ userId }) => {
     if (!userId) return;
     const fetchNotifications = async () => {
       const { data } = await supabase
-        .from<any>("notifications")
+        .from("notifications")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -50,7 +57,7 @@ export const NotificationBell = ({ userId }) => {
 
   const markAllRead = async () => {
     await supabase
-      .from<any>("notifications")
+      .from("notifications")
       .update({ read: true })
       .eq("user_id", userId);
     setNotifications(notifications.map((n) => ({ ...n, read: true })));

@@ -23,7 +23,7 @@ export const VenueSelector = ({
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Updated venues data with the correct venue names
+  // Correct venue names as requested
   const mockVenues = [
     {
       id: "eti-osa-hall",
