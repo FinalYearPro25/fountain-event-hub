@@ -3,7 +3,7 @@ import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, FileCheck, TrendingUp, UserCheck, Building } from "lucide-react";
+import { Calendar, Users, FileCheck, TrendingUp, UserCheck, Building, MapPin, Eye } from "lucide-react";
 
 export const DeanDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
@@ -36,6 +36,36 @@ export const DeanDashboard = () => {
           <Button variant="outline" onClick={signOut}>
             Sign Out
           </Button>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Essential dean tasks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4">
+                <Button className="flex items-center gap-2">
+                  <FileCheck className="h-4 w-4" />
+                  Review Pending Approvals
+                </Button>
+                <Button variant="outline">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View All College Events
+                </Button>
+                <Button variant="outline">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Manage College Venues
+                </Button>
+                <Button variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  View Staff & Students
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Stats Cards */}
@@ -110,6 +140,15 @@ export const DeanDashboard = () => {
                   <div>
                     <p className="font-medium">Student Innovation Fair</p>
                     <p className="text-sm text-gray-600">Requested by Prof. Johnson • Budget: ₦300,000</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline">Review</Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 border-l-4 border-green-500">
+                  <div>
+                    <p className="font-medium">Faculty Workshop</p>
+                    <p className="text-sm text-gray-600">Requested by Dean Office • Budget: ₦150,000</p>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline">Review</Button>

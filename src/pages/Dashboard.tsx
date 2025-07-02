@@ -47,10 +47,16 @@ export default function Dashboard() {
     return <DeanDashboard />;
   }
 
-  // Staff roles - staff, event_coordinator
+  // Staff roles - staff, event_coordinator (THIS WAS THE BUG - these should go to StaffDashboard)
   if (userRole === "staff" || userRole === "event_coordinator") {
     console.log("Routing to StaffDashboard");
     return <StaffDashboard />;
+  }
+
+  // Student role
+  if (userRole === "student") {
+    console.log("Routing to StudentDashboard");
+    return <StudentDashboard />;
   }
 
   // Outsider role
@@ -60,6 +66,6 @@ export default function Dashboard() {
   }
 
   // Default to student dashboard
-  console.log("Routing to StudentDashboard");
+  console.log("Routing to StudentDashboard - default");
   return <StudentDashboard />;
 }

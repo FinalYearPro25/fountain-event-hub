@@ -3,7 +3,7 @@ import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Settings, BarChart3, Shield, UserCheck } from "lucide-react";
+import { Users, Calendar, Settings, BarChart3, Shield, UserCheck, Eye, MapPin } from "lucide-react";
 
 export const AdminDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
@@ -120,6 +120,36 @@ export const AdminDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Venue Management
+              </CardTitle>
+              <CardDescription>
+                Manage venues, bookings, and availability
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full">Manage Venues</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                System Reports
+              </CardTitle>
+              <CardDescription>
+                View comprehensive system reports and analytics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full">View Reports</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
                 System Settings
               </CardTitle>
@@ -129,6 +159,21 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <Button className="w-full">Open Settings</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security & Permissions
+              </CardTitle>
+              <CardDescription>
+                Manage security settings and user permissions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full">Security Settings</Button>
             </CardContent>
           </Card>
         </div>

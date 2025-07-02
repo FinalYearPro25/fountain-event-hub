@@ -1,12 +1,17 @@
 
+import { useState } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Award, BookOpen, UserCheck } from "lucide-react";
+import { Calendar, Users, MapPin, UserCheck, Plus, Eye } from "lucide-react";
+import { CreateEvent } from "./CreateEvent";
 
 export const StudentDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [showViewEvents, setShowViewEvents] = useState(false);
+  const [showViewVenues, setShowViewVenues] = useState(false);
 
   const getRoleDisplayName = (role: string) => {
     const roleMap: { [key: string]: string } = {
@@ -15,6 +20,10 @@ export const StudentDashboard = () => {
     };
     return roleMap[role] || role.toUpperCase();
   };
+
+  if (showCreateEvent) {
+    return <CreateEvent onBack={() => setShowCreateEvent(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -36,6 +45,36 @@ export const StudentDashboard = () => {
           <Button variant="outline" onClick={signOut}>
             Sign Out
           </Button>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Get started with common tasks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4">
+                <Button onClick={() => setShowCreateEvent(true)} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create New Event
+                </Button>
+                <Button variant="outline" onClick={() => setShowViewEvents(true)}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View My Events
+                </Button>
+                <Button variant="outline" onClick={() => setShowViewVenues(true)}>
+                  <MapPin className="h-4 w-4 mr-2" />
+                  View Available Venues
+                </Button>
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Browse All Events
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Stats Cards */}
@@ -64,22 +103,22 @@ export const StudentDashboard = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Certificates</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">My Events Created</CardTitle>
+              <Plus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground">Earned</p>
+              <div className="text-2xl font-bold">3</div>
+              <p className="text-xs text-muted-foreground">Events organized</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Learning Hours</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Venues Booked</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
+              <div className="text-2xl font-bold">2</div>
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>
@@ -89,7 +128,39 @@ export const StudentDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Upcoming Events</CardTitle>
+              <CardTitle>My Created Events</CardTitle>
+              <CardDescription>Events you have organized</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-yellow-50 border-l-4 border-yellow-500">
+                  <div>
+                    <p className="font-medium">Study Group Session</p>
+                    <p className="text-sm text-gray-600">Dec 25, 2024 • Library • Pending Approval</p>
+                  </div>
+                  <Badge variant="outline">Pending</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 border-l-4 border-green-500">
+                  <div>
+                    <p className="font-medium">Programming Workshop</p>
+                    <p className="text-sm text-gray-600">Dec 20, 2024 • IT Lab • Approved</p>
+                  </div>
+                  <Badge variant="default">Approved</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 border-l-4 border-gray-400">
+                  <div>
+                    <p className="font-medium">Chess Tournament</p>
+                    <p className="text-sm text-gray-600">Nov 28, 2024 • Game Room • Completed</p>
+                  </div>
+                  <Badge variant="secondary">Completed</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Registered Events</CardTitle>
               <CardDescription>Events you're registered for</CardDescription>
             </CardHeader>
             <CardContent>
@@ -108,28 +179,10 @@ export const StudentDashboard = () => {
                   </div>
                   <Badge variant="secondary">Confirmed</Badge>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Events</CardTitle>
-              <CardDescription>New events you can join</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium">Leadership Seminar</p>
                     <p className="text-sm text-gray-600">Jan 15, 2025 • Conference Room</p>
-                  </div>
-                  <Button size="sm">Register</Button>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Cultural Night</p>
-                    <p className="text-sm text-gray-600">Jan 20, 2025 • Outdoor Arena</p>
                   </div>
                   <Button size="sm">Register</Button>
                 </div>

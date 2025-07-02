@@ -5,7 +5,7 @@ import { CreateEvent } from "./CreateEvent";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, FileText, UserCheck, Plus } from "lucide-react";
+import { Calendar, Users, MapPin, FileText, UserCheck, Plus, Eye, Settings } from "lucide-react";
 
 export const StaffDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
@@ -58,9 +58,22 @@ export const StaffDashboard = () => {
                   <Plus className="h-4 w-4" />
                   Create New Event
                 </Button>
-                <Button variant="outline">View My Events</Button>
-                <Button variant="outline">Check Venue Availability</Button>
-                <Button variant="outline">View Reports</Button>
+                <Button variant="outline">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View My Events
+                </Button>
+                <Button variant="outline">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Check Venue Availability
+                </Button>
+                <Button variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Reports
+                </Button>
+                <Button variant="outline">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Event Settings
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -81,12 +94,12 @@ export const StaffDashboard = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Registrations</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">342</div>
-              <p className="text-xs text-muted-foreground">Total participants</p>
+              <p className="text-xs text-muted-foreground">Across all events</p>
             </CardContent>
           </Card>
           
@@ -117,31 +130,31 @@ export const StaffDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Events</CardTitle>
-              <CardDescription>Your latest event activities</CardDescription>
+              <CardTitle>My Events & Status</CardTitle>
+              <CardDescription>Track your event approvals and status</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-green-50 border-l-4 border-green-500">
                   <div>
                     <p className="font-medium">Academic Conference 2024</p>
-                    <p className="text-sm text-gray-600">Dec 15, 2024 • Main Auditorium</p>
+                    <p className="text-sm text-gray-600">Dec 15, 2024 • Main Auditorium • 45 registered</p>
                   </div>
-                  <Badge variant="secondary">Approved</Badge>
+                  <Badge variant="default">Approved</Badge>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-yellow-50 border-l-4 border-yellow-500">
                   <div>
                     <p className="font-medium">Workshop on AI</p>
-                    <p className="text-sm text-gray-600">Dec 10, 2024 • Lab 201</p>
+                    <p className="text-sm text-gray-600">Dec 10, 2024 • Lab 201 • 23 registered</p>
                   </div>
-                  <Badge variant="outline">Pending</Badge>
+                  <Badge variant="outline">Pending Approval</Badge>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-blue-50 border-l-4 border-blue-500">
                   <div>
                     <p className="font-medium">Student Orientation</p>
-                    <p className="text-sm text-gray-600">Nov 28, 2024 • Great Hall</p>
+                    <p className="text-sm text-gray-600">Nov 28, 2024 • Great Hall • 120 attended</p>
                   </div>
-                  <Badge variant="default">Completed</Badge>
+                  <Badge variant="secondary">Completed</Badge>
                 </div>
               </div>
             </CardContent>
@@ -149,31 +162,40 @@ export const StaffDashboard = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Upcoming Deadlines</CardTitle>
-              <CardDescription>Important dates to remember</CardDescription>
+              <CardTitle>Event Management</CardTitle>
+              <CardDescription>Manage your events and bookings</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 border-l-4 border-red-500 bg-red-50">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <p className="font-medium">Event Report Due</p>
-                    <p className="text-sm text-gray-600">Academic Conference 2024</p>
+                    <p className="font-medium">Venue Availability</p>
+                    <p className="text-sm text-gray-600">Check and book available venues</p>
                   </div>
-                  <span className="text-sm text-red-600">2 days</span>
+                  <Button size="sm" variant="outline">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Check
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-3 border-l-4 border-yellow-500 bg-yellow-50">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <p className="font-medium">Venue Confirmation</p>
-                    <p className="text-sm text-gray-600">Workshop on AI</p>
+                    <p className="font-medium">Event Registrations</p>
+                    <p className="text-sm text-gray-600">View and manage event registrations</p>
                   </div>
-                  <span className="text-sm text-yellow-600">5 days</span>
+                  <Button size="sm" variant="outline">
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-3 border-l-4 border-green-500 bg-green-50">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <p className="font-medium">Budget Approval</p>
-                    <p className="text-sm text-gray-600">New Year Celebration</p>
+                    <p className="font-medium">Event Reports</p>
+                    <p className="text-sm text-gray-600">Generate attendance and event reports</p>
                   </div>
-                  <span className="text-sm text-green-600">1 week</span>
+                  <Button size="sm" variant="outline">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Generate
+                  </Button>
                 </div>
               </div>
             </CardContent>
