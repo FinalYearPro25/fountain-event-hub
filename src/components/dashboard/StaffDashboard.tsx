@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { CreateEvent } from "./CreateEvent";
+import { ViewEvents } from "./ViewEvents";
+import { ViewVenues } from "./ViewVenues";
+import { BrowseEvents } from "./BrowseEvents";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +13,9 @@ import { Calendar, Users, MapPin, FileText, UserCheck, Plus, Eye, Settings } fro
 export const StaffDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [showViewEvents, setShowViewEvents] = useState(false);
+  const [showViewVenues, setShowViewVenues] = useState(false);
+  const [showBrowseEvents, setShowBrowseEvents] = useState(false);
 
   const getRoleDisplayName = (role: string) => {
     const roleMap: { [key: string]: string } = {
@@ -21,6 +27,18 @@ export const StaffDashboard = () => {
 
   if (showCreateEvent) {
     return <CreateEvent onBack={() => setShowCreateEvent(false)} />;
+  }
+
+  if (showViewEvents) {
+    return <ViewEvents onBack={() => setShowViewEvents(false)} />;
+  }
+
+  if (showViewVenues) {
+    return <ViewVenues onBack={() => setShowViewVenues(false)} />;
+  }
+
+  if (showBrowseEvents) {
+    return <BrowseEvents onBack={() => setShowBrowseEvents(false)} />;
   }
 
   return (
@@ -58,13 +76,17 @@ export const StaffDashboard = () => {
                   <Plus className="h-4 w-4" />
                   Create New Event
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setShowViewEvents(true)}>
                   <Eye className="h-4 w-4 mr-2" />
                   View My Events
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setShowViewVenues(true)}>
                   <MapPin className="h-4 w-4 mr-2" />
                   Check Venue Availability
+                </Button>
+                <Button variant="outline" onClick={() => setShowBrowseEvents(true)}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Browse All Events
                 </Button>
                 <Button variant="outline">
                   <FileText className="h-4 w-4 mr-2" />
@@ -172,7 +194,7 @@ export const StaffDashboard = () => {
                     <p className="font-medium">Venue Availability</p>
                     <p className="text-sm text-gray-600">Check and book available venues</p>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => setShowViewVenues(true)}>
                     <MapPin className="h-4 w-4 mr-2" />
                     Check
                   </Button>

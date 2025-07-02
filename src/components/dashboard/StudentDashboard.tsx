@@ -6,12 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, MapPin, UserCheck, Plus, Eye } from "lucide-react";
 import { CreateEvent } from "./CreateEvent";
+import { ViewEvents } from "./ViewEvents";
+import { ViewVenues } from "./ViewVenues";
+import { BrowseEvents } from "./BrowseEvents";
 
 export const StudentDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showViewEvents, setShowViewEvents] = useState(false);
   const [showViewVenues, setShowViewVenues] = useState(false);
+  const [showBrowseEvents, setShowBrowseEvents] = useState(false);
 
   const getRoleDisplayName = (role: string) => {
     const roleMap: { [key: string]: string } = {
@@ -23,6 +27,18 @@ export const StudentDashboard = () => {
 
   if (showCreateEvent) {
     return <CreateEvent onBack={() => setShowCreateEvent(false)} />;
+  }
+
+  if (showViewEvents) {
+    return <ViewEvents onBack={() => setShowViewEvents(false)} />;
+  }
+
+  if (showViewVenues) {
+    return <ViewVenues onBack={() => setShowViewVenues(false)} />;
+  }
+
+  if (showBrowseEvents) {
+    return <BrowseEvents onBack={() => setShowBrowseEvents(false)} />;
   }
 
   return (
@@ -68,7 +84,7 @@ export const StudentDashboard = () => {
                   <MapPin className="h-4 w-4 mr-2" />
                   View Available Venues
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setShowBrowseEvents(true)}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Browse All Events
                 </Button>

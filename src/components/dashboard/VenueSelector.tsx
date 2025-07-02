@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -23,7 +22,7 @@ export const VenueSelector = ({
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Correct venue names as requested
+  // Updated venue names as requested
   const mockVenues = [
     {
       id: "eti-osa-hall",
@@ -31,7 +30,7 @@ export const VenueSelector = ({
       venue_type: "hall",
       capacity: 300,
       location_description: "Main campus auditorium",
-      images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -40,7 +39,7 @@ export const VenueSelector = ({
       venue_type: "conference_room",
       capacity: 150,
       location_description: "Conference and meeting hall",
-      images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -49,7 +48,7 @@ export const VenueSelector = ({
       venue_type: "classroom",
       capacity: 120,
       location_description: "Large lecture room",
-      images: ["https://images.unsplash.com/photo-1487252665478-49b61b47f302?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1487252665478-49b61b47f302?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -58,7 +57,7 @@ export const VenueSelector = ({
       venue_type: "classroom",
       capacity: 200,
       location_description: "Large lecture theatre",
-      images: ["https://images.unsplash.com/photo-1466442929976-97f336a657be?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1466442929976-97f336a657be?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -67,7 +66,7 @@ export const VenueSelector = ({
       venue_type: "auditorium",
       capacity: 500,
       location_description: "Main auditorium for large events",
-      images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -76,7 +75,7 @@ export const VenueSelector = ({
       venue_type: "conference_room",
       capacity: 80,
       location_description: "Conference rooms and seminar halls",
-      images: ["https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -85,7 +84,7 @@ export const VenueSelector = ({
       venue_type: "classroom",
       capacity: 100,
       location_description: "Law faculty lecture halls",
-      images: ["https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -94,7 +93,7 @@ export const VenueSelector = ({
       venue_type: "hall",
       capacity: 150,
       location_description: "Arts and humanities facilities",
-      images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -103,7 +102,7 @@ export const VenueSelector = ({
       venue_type: "conference_room",
       capacity: 90,
       location_description: "Medical school conference rooms",
-      images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     },
     {
@@ -112,7 +111,7 @@ export const VenueSelector = ({
       venue_type: "hall",
       capacity: 250,
       location_description: "Modern conference and event facility",
-      images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop"],
+      images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     }
   ];
@@ -203,8 +202,12 @@ export const VenueSelector = ({
                 {venue.images && venue.images.length > 0 && (
                   <img
                     src={venue.images[0]}
-                    alt="Venue"
-                    className="rounded w-full max-h-32 object-cover mb-2"
+                    alt={venue.name}
+                    className="rounded w-full h-32 object-cover mb-2"
+                    onError={(e) => {
+                      console.log("Image failed to load:", venue.images[0]);
+                      e.target.style.display = 'none';
+                    }}
                   />
                 )}
                 <div className="flex gap-2">

@@ -47,7 +47,7 @@ export default function Dashboard() {
     return <DeanDashboard />;
   }
 
-  // Staff roles - staff, event_coordinator (THIS WAS THE BUG - these should go to StaffDashboard)
+  // Staff roles - staff, event_coordinator
   if (userRole === "staff" || userRole === "event_coordinator") {
     console.log("Routing to StaffDashboard");
     return <StaffDashboard />;
