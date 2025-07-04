@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,7 @@ export interface UserProfile {
     | "super_admin"
     | "senate_member"
     | "dean"
+    | "dean_student_affairs"
     | "department_head"
     | "event_coordinator"
     | "student"
