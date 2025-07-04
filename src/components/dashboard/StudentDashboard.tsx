@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,27 +69,24 @@ export const StudentDashboard = () => {
     setError("");
     const fetchData = async () => {
       try {
-        const { data: created, error: createdErr } = await supabase
-          .from("events")
-          .select("*")
-          .eq("organizer_id", user.id);
+        const [
+          { data: created, error: createdErr },
+          { data: venuesData, error: venuesErr },
+        ] = await Promise.all([
+          supabase.from("events").select("*").eq("organizer_id", user.id),
+          supabase.from("venues").select("*").eq("is_active", true),
+        ]);
         if (createdErr) throw createdErr;
         setMyEvents(created || []);
-
-        const { data: registered, error: registeredErr } = await supabase
-          .from("event_registrations")
-          .select("*, events(*)")
-          .eq("user_id", user.id);
-        if (registeredErr) throw registeredErr;
-        
-        const regEvents = registered?.map(reg => reg.events).filter(Boolean) || [];
-        setRegisteredEvents(regEvents);
-
+        if (venuesErr) throw venuesErr;
         setStats({
           myEvents: created?.length || 0,
-          registrations: registered?.length || 0,
-          venues: 11,
-          pending: created?.filter(e => e.status === 'pending_approval').length || 0,
+          registrations: registeredEvents.length,
+          venues: venuesData?.length || 0,
+          pending:
+            created?.filter(
+              (e) => e.status === "pending_approval" || e.status === "draft"
+            ).length || 0,
         });
       } catch (err) {
         setError("Failed to load dashboard data.");
@@ -99,7 +95,7 @@ export const StudentDashboard = () => {
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, registeredEvents.length]);
 
   if (showCreateEvent) {
     return <CreateEvent onBack={() => setShowCreateEvent(false)} />;
@@ -120,9 +116,14 @@ export const StudentDashboard = () => {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Student Dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Student Dashboard
+            </h1>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border-green-200">
+              <Badge
+                variant="outline"
+                className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border-green-200"
+              >
                 <UserCheck className="h-4 w-4 text-green-600" />
                 <span className="text-green-700 font-medium">Student</span>
               </Badge>
@@ -131,8 +132,8 @@ export const StudentDashboard = () => {
               </Badge>
             </div>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={signOut}
             className="px-6 py-2 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
           >
@@ -144,7 +145,9 @@ export const StudentDashboard = () => {
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-green-700 font-medium">Loading your dashboard...</p>
+              <p className="text-green-700 font-medium">
+                Loading your dashboard...
+              </p>
             </div>
           </div>
         ) : error ? (
@@ -162,7 +165,9 @@ export const StudentDashboard = () => {
                   <BookOpen className="h-5 w-5" />
                   Quick Actions
                 </CardTitle>
-                <CardDescription>Get started with common student tasks</CardDescription>
+                <CardDescription>
+                  Get started with common student tasks
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4">
@@ -205,45 +210,69 @@ export const StudentDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="shadow-soft border-0 bg-white/80 backdrop-blur-sm hover:shadow-green transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">My Events</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    My Events
+                  </CardTitle>
                   <Calendar className="h-5 w-5 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-700">{stats.myEvents}</div>
-                  <p className="text-xs text-green-600 font-medium">Events created</p>
+                  <div className="text-3xl font-bold text-green-700">
+                    {stats.myEvents}
+                  </div>
+                  <p className="text-xs text-green-600 font-medium">
+                    Events created
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-soft border-0 bg-white/80 backdrop-blur-sm hover:shadow-green transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Registrations</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    Registrations
+                  </CardTitle>
                   <Users className="h-5 w-5 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-700">{stats.registrations}</div>
-                  <p className="text-xs text-green-600 font-medium">Events joined</p>
+                  <div className="text-3xl font-bold text-green-700">
+                    {stats.registrations}
+                  </div>
+                  <p className="text-xs text-green-600 font-medium">
+                    Events joined
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-soft border-0 bg-white/80 backdrop-blur-sm hover:shadow-green transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Available Venues</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    Available Venues
+                  </CardTitle>
                   <MapPin className="h-5 w-5 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-700">{stats.venues}</div>
-                  <p className="text-xs text-green-600 font-medium">Campus locations</p>
+                  <div className="text-3xl font-bold text-green-700">
+                    {stats.venues}
+                  </div>
+                  <p className="text-xs text-green-600 font-medium">
+                    Campus locations
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-soft border-0 bg-white/80 backdrop-blur-sm hover:shadow-green transition-all duration-300 hover:-translate-y-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Pending</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    Pending
+                  </CardTitle>
                   <Clock className="h-5 w-5 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-700">{stats.pending}</div>
-                  <p className="text-xs text-green-600 font-medium">Awaiting approval</p>
+                  <div className="text-3xl font-bold text-green-700">
+                    {stats.pending}
+                  </div>
+                  <p className="text-xs text-green-600 font-medium">
+                    Awaiting approval
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -256,32 +285,46 @@ export const StudentDashboard = () => {
                     <Award className="h-5 w-5" />
                     My Events
                   </CardTitle>
-                  <CardDescription>Track your created events and their status</CardDescription>
+                  <CardDescription>
+                    Track your created events and their status
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {myEvents.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p className="font-medium mb-2">No events created yet</p>
-                        <p className="text-sm">Create your first event to get started</p>
+                        <p className="font-medium mb-2">
+                          No events created yet
+                        </p>
+                        <p className="text-sm">
+                          Create your first event to get started
+                        </p>
                       </div>
                     ) : (
                       myEvents.slice(0, 3).map((event) => (
-                        <div key={event.id} className="p-4 border border-green-100 rounded-lg bg-green-50/50 hover:bg-green-50 transition-colors duration-200">
+                        <div
+                          key={event.id}
+                          className="p-4 border border-green-100 rounded-lg bg-green-50/50 hover:bg-green-50 transition-colors duration-200"
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <p className="font-semibold text-gray-900">{event.title}</p>
+                              <p className="font-semibold text-gray-900">
+                                {event.title}
+                              </p>
                               <p className="text-sm text-gray-600 mt-1">
-                                {event.start_date?.slice(0, 10)} • {event.venue_id}
+                                {event.start_date?.slice(0, 10)} •{" "}
+                                {event.venue_id}
                               </p>
                             </div>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={`${
-                                event.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
-                                event.status === 'pending_approval' ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
-                                'border-gray-200 text-gray-700 bg-gray-50'
+                                event.status === "approved"
+                                  ? "border-green-200 text-green-700 bg-green-50"
+                                  : event.status === "pending_approval"
+                                    ? "border-yellow-200 text-yellow-700 bg-yellow-50"
+                                    : "border-gray-200 text-gray-700 bg-gray-50"
                               }`}
                             >
                               {event.status}
@@ -300,7 +343,9 @@ export const StudentDashboard = () => {
                     <TrendingUp className="h-5 w-5" />
                     Registered Events
                   </CardTitle>
-                  <CardDescription>Events you've registered to attend</CardDescription>
+                  <CardDescription>
+                    Events you've registered to attend
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -308,15 +353,23 @@ export const StudentDashboard = () => {
                       <div className="text-center py-8 text-gray-500">
                         <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p className="font-medium mb-2">No registrations yet</p>
-                        <p className="text-sm">Browse events to find interesting activities</p>
+                        <p className="text-sm">
+                          Browse events to find interesting activities
+                        </p>
                       </div>
                     ) : (
                       registeredEvents.slice(0, 3).map((event) => (
-                        <div key={event.id} className="p-4 border border-green-100 rounded-lg bg-green-50/50 hover:bg-green-50 transition-colors duration-200">
+                        <div
+                          key={event.id}
+                          className="p-4 border border-green-100 rounded-lg bg-green-50/50 hover:bg-green-50 transition-colors duration-200"
+                        >
                           <div>
-                            <p className="font-semibold text-gray-900">{event.title}</p>
+                            <p className="font-semibold text-gray-900">
+                              {event.title}
+                            </p>
                             <p className="text-sm text-gray-600 mt-1">
-                              {event.start_date?.slice(0, 10)} • {event.venue_id}
+                              {event.start_date?.slice(0, 10)} •{" "}
+                              {event.venue_id}
                             </p>
                           </div>
                         </div>

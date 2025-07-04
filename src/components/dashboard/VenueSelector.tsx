@@ -24,6 +24,7 @@ export const VenueSelector = ({
 
   const venueList = [
     {
+      id: "ETI-OSA",
       name: "Eti-Osa Hall",
       venue_type: "hall",
       capacity: 300,
@@ -34,8 +35,9 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "PARENT-FORUM",
       name: "Parent Forum",
-      venue_type: "forum",
+      venue_type: "conference_room",
       capacity: 150,
       location_description: "Conference and meeting hall",
       images: [
@@ -44,6 +46,7 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "LR-HALL",
       name: "LR Hall",
       venue_type: "hall",
       capacity: 120,
@@ -54,6 +57,7 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "LT-HALL",
       name: "LT Hall",
       venue_type: "hall",
       capacity: 200,
@@ -64,6 +68,7 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "AMINA-SAMBO",
       name: "Amina Namadi Sambo Hall",
       venue_type: "hall",
       capacity: 500,
@@ -74,8 +79,9 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "PG-BUILDING",
       name: "Post Graduate Building",
-      venue_type: "building",
+      venue_type: "conference_room",
       capacity: 80,
       location_description: "Conference rooms and seminar halls",
       images: [
@@ -84,8 +90,9 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "LAW-BUILDING",
       name: "College of Law Building",
-      venue_type: "building",
+      venue_type: "conference_room",
       capacity: 100,
       location_description: "Law faculty lecture halls",
       images: [
@@ -94,8 +101,9 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "ART-BUILDING",
       name: "College of Art Building",
-      venue_type: "building",
+      venue_type: "conference_room",
       capacity: 150,
       location_description: "Arts and humanities facilities",
       images: [
@@ -104,8 +112,9 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "MEDICAL-BUILDING",
       name: "College of Medical Building",
-      venue_type: "building",
+      venue_type: "conference_room",
       capacity: 90,
       location_description: "Medical school conference rooms",
       images: [
@@ -114,8 +123,9 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
+      id: "SHORELINE",
       name: "Shoreline Building",
-      venue_type: "building",
+      venue_type: "conference_room",
       capacity: 250,
       location_description: "Modern conference and event facility",
       images: [
@@ -126,9 +136,24 @@ export const VenueSelector = ({
   ];
 
   useEffect(() => {
-    // Always use the provided venue list for consistency
-    setVenues(venueList);
-    setLoading(false);
+    const fetchVenues = async () => {
+      try {
+        const { data: venuesData } = await supabase
+          .from("venues")
+          .select("*")
+          .eq("is_active", true);
+        if (!venuesData || venuesData.length === 0) {
+          setVenues(venueList); // fallback to mock data if DB is empty
+        } else {
+          setVenues(venuesData);
+        }
+      } catch (error) {
+        setVenues(venueList); // fallback to mock data on error
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVenues();
   }, []);
 
   useEffect(() => {
@@ -166,15 +191,16 @@ export const VenueSelector = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {venues.map((venue) => {
           const available = isVenueAvailable(venue.id);
+          const isSelected = value === venue.id;
           return (
             <Card
               key={venue.id}
-              className={value === venue.id ? "border-blue-500" : ""}
+              className={isSelected ? "border-blue-500" : ""}
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>{venue.name}</CardTitle>
-                  <Badge>{venue.venue_type}</Badge>
+                  <Badge>{venue.venue_type.replace("_", " ")}</Badge>
                 </div>
                 <CardDescription>{venue.location_description}</CardDescription>
               </CardHeader>
@@ -195,26 +221,28 @@ export const VenueSelector = ({
                     alt={venue.name}
                     className="rounded w-full h-32 object-cover"
                     onError={(e) => {
-                      console.log("Image failed to load:", venue.images[0]);
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-2">
                   <Button
                     size="sm"
                     variant={
                       available
-                        ? value === venue.id
+                        ? isSelected
                           ? "default"
                           : "outline"
                         : "destructive"
                     }
                     disabled={!available}
-                    onClick={() => available && onSelectVenue(venue.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (available) onSelectVenue(venue.id);
+                    }}
                   >
                     {available ? (
-                      value === venue.id ? (
+                      isSelected ? (
                         "Selected"
                       ) : (
                         "Select"
