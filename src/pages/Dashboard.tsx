@@ -6,6 +6,7 @@ import { HODDashboard } from "@/components/dashboard/HODDashboard";
 import { DeanDashboard } from "@/components/dashboard/DeanDashboard";
 import { StudentAffairsDashboard } from "@/components/dashboard/StudentAffairsDashboard";
 import { VCDashboard } from "@/components/dashboard/VCDashboard";
+import { SuperAdminDashboard } from "@/components/dashboard/SuperAdminDashboard";
 
 export default function Dashboard() {
   const { user, profile, loading } = useAuthContext();
@@ -15,8 +16,12 @@ export default function Dashboard() {
 
   const userRole = profile?.role;
 
+  // Super Admin
+  if (userRole === "super_admin") {
+    return <SuperAdminDashboard />;
+  }
   // VC (SuperAdmin, Senate Member)
-  if (userRole === "super_admin" || userRole === "senate_member") {
+  if (userRole === "vc" || userRole === "senate_member") {
     return <VCDashboard />;
   }
   // Dean of Student Affairs

@@ -53,6 +53,9 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<
+    "idle" | "pending" | "success"
+  >("idle");
   const { toast } = useToast();
 
   const colleges = [
@@ -116,6 +119,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
       });
       setStep(1);
       setRegistrationSuccess(false);
+      setRegistrationStatus("idle");
     }
   }, [open]);
 
@@ -197,12 +201,41 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           });
         }
 
-        setRegistrationSuccess(true);
-        toast({
-          title: "Registration Successful!",
-          description: `Account created with role: ${roles.find((r) => r.value === userRole)?.label}. Please check your email to verify your account.`,
-        });
-        setStep(4);
+        // Instead of checking only 'student' and 'outsider', check all staff roles in one array
+        const staffRoles = [
+          "staff",
+          "event_coordinator",
+          "department_head",
+          "dean",
+          "senate_member",
+          "dean_student_affairs",
+        ];
+        if (userRole === "student" || userRole === "outsider") {
+          // Auto-approve students and outsiders
+          setRegistrationStatus("success");
+          toast({
+            title: "Registration Successful!",
+            description: `Account created with role: ${roles.find((r) => r.value === userRole)?.label}. Please check your email to verify your account.`,
+          });
+          setStep(4);
+        } else if (staffRoles.includes(userRole)) {
+          // Staff roles require Super Admin approval
+          setRegistrationStatus("pending");
+          await supabase.from("pending_registrations").insert({
+            user_id: data.user.id,
+            email: formData.email,
+            full_name: formData.fullName,
+            requested_role: userRole,
+            status: "pending",
+            created_at: new Date().toISOString(),
+          });
+          toast({
+            title: "Registration Pending Approval",
+            description: `Your registration for the role ${roles.find((r) => r.value === userRole)?.label} is pending Super Admin approval. You will be notified once approved.`,
+            variant: "default",
+          });
+          setStep(4);
+        }
       }
     } catch (error) {
       toast({
@@ -469,14 +502,26 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   const renderStep4 = () =>
     registrationSuccess ? (
       <div className="space-y-6 text-center">
-        <h2 className="text-xl font-bold">Registration Successful!</h2>
-        <p className="text-gray-600">
-          Your account has been created with the role:{" "}
-          <strong>{roles.find((r) => r.value === userRole)?.label}</strong>
-        </p>
-        <p className="text-gray-600">
-          Please check your email to verify your account, then you can log in.
-        </p>
+        {registrationStatus === "pending" ? (
+          <>
+            <h2 className="text-xl font-bold">Registration Pending Approval</h2>
+            <p className="text-gray-600">
+              Your registration is pending Super Admin approval. You will be
+              notified by email once your account is approved.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-bold">Registration Successful!</h2>
+            <p className="text-gray-600">
+              Your account has been created with the role:{" "}
+              <strong>{roles.find((r) => r.value === userRole)?.label}</strong>
+            </p>
+            <p className="text-gray-600">
+              Please check your email to verify your account.
+            </p>
+          </>
+        )}
         <Button className="mt-4" onClick={() => onOpenChange(false)}>
           Close
         </Button>
