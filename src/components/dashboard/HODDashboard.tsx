@@ -7,20 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserCheck, FileText, Check, X, Building2 } from "lucide-react";
 
-// Simple, clean interface to avoid type recursion
-interface PendingEvent {
+// Simple interface without complex type recursion
+interface SimplePendingEvent {
   id: string;
   title: string;
   start_date: string | null;
   venue_id: string | null;
   organizer_id: string | null;
-  department: string | null;
   status: string;
 }
 
 export const HODDashboard = () => {
   const { user, profile, signOut } = useAuthContext();
-  const [pendingEvents, setPendingEvents] = useState<PendingEvent[]>([]);
+  const [pendingEvents, setPendingEvents] = useState<SimplePendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -32,15 +31,30 @@ export const HODDashboard = () => {
       setError("");
       
       try {
+        // Query events without the department column since it doesn't exist
         const { data, error: fetchError } = await supabase
           .from("events")
-          .select("id, title, start_date, venue_id, organizer_id, department, status")
-          .eq("status", "pending_approval")
-          .eq("department", profile.department);
+          .select("id, title, start_date, venue_id, organizer_id, status")
+          .eq("status", "pending_approval");
           
         if (fetchError) throw fetchError;
         
-        setPendingEvents(data || []);
+        // Filter by department through organizer's profile
+        if (data) {
+          const eventsWithDepartmentCheck = [];
+          for (const event of data) {
+            const { data: organizerProfile } = await supabase
+              .from("profiles")
+              .select("department")
+              .eq("id", event.organizer_id)
+              .single();
+              
+            if (organizerProfile?.department === profile.department) {
+              eventsWithDepartmentCheck.push(event);
+            }
+          }
+          setPendingEvents(eventsWithDepartmentCheck);
+        }
       } catch (err) {
         console.error("Error fetching pending events:", err);
         setError("Failed to load pending events.");
@@ -193,7 +207,7 @@ export const HODDashboard = () => {
                           <span className="font-medium">Venue:</span> {event.venue_id || 'To be determined'}
                         </div>
                         <div>
-                          <span className="font-medium">Department:</span> {event.department || profile?.department}
+                          <span className="font-medium">Department:</span> {profile?.department}
                         </div>
                       </div>
                     </div>
