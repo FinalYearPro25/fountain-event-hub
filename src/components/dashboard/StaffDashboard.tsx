@@ -24,6 +24,12 @@ import {
   Eye,
   Settings,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Type definitions for Staff Dashboard
 interface Event {
@@ -62,6 +68,10 @@ export const StaffDashboard = () => {
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  // Add state for modals
+  const [showReports, setShowReports] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -202,11 +212,17 @@ export const StaffDashboard = () => {
                       <Calendar className="h-4 w-4 mr-2" />
                       Browse All Events
                     </Button>
-                    <Button variant="outline">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowReports(true)}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       View Reports
                     </Button>
-                    <Button variant="outline">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowSettings(true)}
+                    >
                       <Settings className="h-4 w-4 mr-2" />
                       Event Settings
                     </Button>
@@ -343,6 +359,28 @@ export const StaffDashboard = () => {
           </>
         )}
       </div>
+      <Dialog open={showReports} onOpenChange={setShowReports}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reports</DialogTitle>
+          </DialogHeader>
+          <div>
+            Reports feature coming soon! Here you will be able to generate and
+            download event reports.
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Event Settings</DialogTitle>
+          </DialogHeader>
+          <div>
+            Event settings feature coming soon! Here you will be able to
+            configure event-related preferences.
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
