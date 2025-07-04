@@ -34,7 +34,7 @@ interface RegisterDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type AppRole = Database['public']['Enums']['app_role'];
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   const [userType, setUserType] = useState("");
@@ -66,12 +66,37 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   const roles = [
     { value: "student" as AppRole, label: "Student", userTypes: ["student"] },
     { value: "staff" as AppRole, label: "Staff Member", userTypes: ["staff"] },
-    { value: "event_coordinator" as AppRole, label: "Event Coordinator", userTypes: ["staff"] },
-    { value: "department_head" as AppRole, label: "Department Head", userTypes: ["staff"] },
+    {
+      value: "event_coordinator" as AppRole,
+      label: "Event Coordinator",
+      userTypes: ["staff"],
+    },
+    {
+      value: "department_head" as AppRole,
+      label: "Department Head",
+      userTypes: ["staff"],
+    },
     { value: "dean" as AppRole, label: "Dean", userTypes: ["staff"] },
-    { value: "senate_member" as AppRole, label: "Senate Member", userTypes: ["staff"] },
-    { value: "super_admin" as AppRole, label: "Super Admin", userTypes: ["staff"] },
-    { value: "outsider" as AppRole, label: "External/Guest", userTypes: ["outsider"] }
+    {
+      value: "senate_member" as AppRole,
+      label: "Senate Member",
+      userTypes: ["staff"],
+    },
+    {
+      value: "super_admin" as AppRole,
+      label: "Super Admin",
+      userTypes: ["staff"],
+    },
+    {
+      value: "dean_student_affairs" as AppRole,
+      label: "Dean of Student Affairs",
+      userTypes: ["staff"],
+    },
+    {
+      value: "outsider" as AppRole,
+      label: "External/Guest",
+      userTypes: ["outsider"],
+    },
   ];
 
   useEffect(() => {
@@ -115,7 +140,6 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
       try {
         await supabase.auth.signOut({ scope: "global" });
       } catch (err) {}
-      
       const redirectUrl = `${window.location.origin}/dashboard`;
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -136,7 +160,6 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
           },
         },
       });
-      
       if (error) {
         if (error.message.includes("User already registered")) {
           toast({
@@ -154,18 +177,22 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
         }
       } else if (data.user && userRole) {
         // After successful registration, add the user role to the user_roles table
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: userRole as AppRole
-          });
+        let roleToInsert = userRole as AppRole;
+        // Special handling for Dean of Student Affairs
+        if (userRole === "dean_student_affairs") {
+          roleToInsert = "dean_student_affairs" as AppRole;
+        }
+        const { error: roleError } = await supabase.from("user_roles").insert({
+          user_id: data.user.id,
+          role: roleToInsert,
+        });
 
         if (roleError) {
-          console.error('Error assigning role:', roleError);
+          console.error("Error assigning role:", roleError);
           toast({
             title: "Registration Warning",
-            description: "Account created but role assignment failed. Please contact support.",
+            description:
+              "Account created but role assignment failed. Please contact support.",
             variant: "destructive",
           });
         }
@@ -173,7 +200,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
         setRegistrationSuccess(true);
         toast({
           title: "Registration Successful!",
-          description: `Account created with role: ${roles.find(r => r.value === userRole)?.label}. Please check your email to verify your account.`,
+          description: `Account created with role: ${roles.find((r) => r.value === userRole)?.label}. Please check your email to verify your account.`,
         });
         setStep(4);
       }
@@ -220,7 +247,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
   ];
 
   const getAvailableRoles = () => {
-    return roles.filter(role => role.userTypes.includes(userType));
+    return roles.filter((role) => role.userTypes.includes(userType));
   };
 
   // Step 1: User Type Selection
@@ -292,11 +319,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
         <Button variant="outline" type="button" onClick={() => setStep(1)}>
           Back
         </Button>
-        <Button 
-          type="button" 
-          onClick={() => setStep(3)}
-          disabled={!userRole}
-        >
+        <Button type="button" onClick={() => setStep(3)} disabled={!userRole}>
           Next
         </Button>
       </div>
@@ -448,7 +471,8 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
       <div className="space-y-6 text-center">
         <h2 className="text-xl font-bold">Registration Successful!</h2>
         <p className="text-gray-600">
-          Your account has been created with the role: <strong>{roles.find(r => r.value === userRole)?.label}</strong>
+          Your account has been created with the role:{" "}
+          <strong>{roles.find((r) => r.value === userRole)?.label}</strong>
         </p>
         <p className="text-gray-600">
           Please check your email to verify your account, then you can log in.
@@ -466,7 +490,7 @@ export const RegisterDialog = ({ open, onOpenChange }: RegisterDialogProps) => {
               <b>User Type:</b> {userType}
             </li>
             <li>
-              <b>Role:</b> {roles.find(r => r.value === userRole)?.label}
+              <b>Role:</b> {roles.find((r) => r.value === userRole)?.label}
             </li>
             <li>
               <b>Full Name:</b> {formData.fullName}

@@ -1,6 +1,17 @@
+<<<<<<< HEAD
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+=======
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+>>>>>>> 3e27180 (Updated project with latest changes)
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Users } from "lucide-react";
@@ -22,8 +33,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "hall",
       capacity: 300,
       location_description: "Main campus auditorium",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "parent-forum",
@@ -31,8 +49,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "conference_room",
       capacity: 150,
       location_description: "Conference and meeting hall",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "lr-hall",
@@ -40,8 +65,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "classroom",
       capacity: 120,
       location_description: "Large lecture room",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1487252665478-49b61b47f302?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1487252665478-49b61b47f302?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "lt-hall",
@@ -49,8 +81,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "classroom",
       capacity: 200,
       location_description: "Large lecture theatre",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1466442929976-97f336a657be?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1466442929976-97f336a657be?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "amina-namadi-sambo-hall",
@@ -58,8 +97,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "auditorium",
       capacity: 500,
       location_description: "Main auditorium for large events",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "post-graduate-building",
@@ -67,8 +113,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "conference_room",
       capacity: 80,
       location_description: "Conference rooms and seminar halls",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "college-law-building",
@@ -76,8 +129,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "classroom",
       capacity: 100,
       location_description: "Law faculty lecture halls",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "college-art-building",
@@ -85,8 +145,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "hall",
       capacity: 150,
       location_description: "Arts and humanities facilities",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "college-medical-building",
@@ -94,8 +161,15 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "conference_room",
       capacity: 90,
       location_description: "Medical school conference rooms",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop&crop=center"],
       is_active: true
+=======
+      images: [
+        "https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+>>>>>>> 3e27180 (Updated project with latest changes)
     },
     {
       id: "shoreline-building",
@@ -103,6 +177,7 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
       venue_type: "hall",
       capacity: 250,
       location_description: "Modern conference and event facility",
+<<<<<<< HEAD
       images: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&crop=center"],
       is_active: true
     }
@@ -132,6 +207,19 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
     };
 
     fetchVenues();
+=======
+      images: [
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop&crop=center",
+      ],
+      is_active: true,
+    },
+  ];
+
+  useEffect(() => {
+    // Always use the provided venue list for consistency
+    setVenues(mockVenues);
+    setLoading(false);
+>>>>>>> 3e27180 (Updated project with latest changes)
   }, []);
 
   return (
@@ -158,7 +246,13 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
                     <CardTitle>{venue.name}</CardTitle>
                     <Badge>{venue.venue_type}</Badge>
                   </div>
+<<<<<<< HEAD
                   <CardDescription>{venue.location_description}</CardDescription>
+=======
+                  <CardDescription>
+                    {venue.location_description}
+                  </CardDescription>
+>>>>>>> 3e27180 (Updated project with latest changes)
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -179,7 +273,11 @@ export const ViewVenues = ({ onBack }: ViewVenuesProps) => {
                         className="rounded w-full h-32 object-cover"
                         onError={(e) => {
                           console.log("Image failed to load:", venue.images[0]);
+<<<<<<< HEAD
                           e.target.style.display = 'none';
+=======
+                          (e.target as HTMLImageElement).style.display = "none";
+>>>>>>> 3e27180 (Updated project with latest changes)
                         }}
                       />
                     )}

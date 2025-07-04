@@ -43,18 +43,28 @@ export const useAuth = () => {
       }
 
       // Fetch the highest role using the Supabase function
+      let userRole = null;
       const { data: roleData, error: roleError } = await supabase.rpc(
         "get_user_role",
         { _user_id: userId }
       );
-      if (roleError) {
-        console.error("Error fetching user role:", roleError);
+      if (roleError || !roleData) {
+        // Fallback: fetch from user_roles table
+        const { data: userRoles, error: userRolesError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .single();
+        if (!userRolesError && userRoles) {
+          userRole = userRoles.role;
+        }
+      } else {
+        userRole = roleData;
       }
-
       if (profileData) {
         setProfile({
           ...profileData,
-          role: roleData || "student",
+          role: userRole || "student",
         });
       }
     } catch (error) {

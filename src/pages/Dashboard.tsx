@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Navigate } from "react-router-dom";
@@ -5,6 +6,16 @@ import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { DeanDashboard } from "@/components/dashboard/DeanDashboard";
 import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
+=======
+import { useAuthContext } from "@/components/auth/AuthProvider";
+import { Navigate } from "react-router-dom";
+import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
+import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
+import { HODDashboard } from "@/components/dashboard/HODDashboard";
+import { DeanDashboard } from "@/components/dashboard/DeanDashboard";
+import { StudentAffairsDashboard } from "@/components/dashboard/StudentAffairsDashboard";
+import { VCDashboard } from "@/components/dashboard/VCDashboard";
+>>>>>>> 3e27180 (Updated project with latest changes)
 
 export default function Dashboard() {
   const { user, profile, loading } = useAuthContext();
@@ -35,6 +46,7 @@ export default function Dashboard() {
 
   console.log("Dashboard routing - Role:", userRole, "Profile:", profile);
 
+<<<<<<< HEAD
   // Admin roles - super_admin, senate_member
   if (userRole === "super_admin" || userRole === "senate_member") {
     console.log("Routing to AdminDashboard");
@@ -67,5 +79,38 @@ export default function Dashboard() {
 
   // Default to student dashboard
   console.log("Routing to StudentDashboard - default");
+=======
+  // VC (SuperAdmin, Senate Member)
+  if (userRole === "super_admin" || userRole === "senate_member") {
+    return <VCDashboard />;
+  }
+
+  // Dean of Student Affairs
+  if (userRole === "dean_student_affairs") {
+    return <StudentAffairsDashboard />;
+  }
+
+  // Dean of College
+  if (userRole === "dean") {
+    return <DeanDashboard />;
+  }
+
+  // HOD
+  if (userRole === "department_head") {
+    return <HODDashboard />;
+  }
+
+  // Staff
+  if (userRole === "staff" || userRole === "event_coordinator") {
+    return <StaffDashboard />;
+  }
+
+  // Student
+  if (userRole === "student") {
+    return <StudentDashboard />;
+  }
+
+  // Outsider or fallback
+>>>>>>> 3e27180 (Updated project with latest changes)
   return <StudentDashboard />;
 }
