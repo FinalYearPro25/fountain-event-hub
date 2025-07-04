@@ -18,7 +18,6 @@ interface Event {
   status?: EventStatus;
   organizer_id?: string;
   department?: string;
-  [key: string]: any;
 }
 
 export const HODDashboard = () => {
@@ -82,22 +81,22 @@ export const HODDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
               HOD Dashboard
             </h1>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2">
               <Badge
                 variant="outline"
-                className="flex items-center gap-1 px-3 py-1 border-emerald-200 text-emerald-700"
+                className="flex items-center gap-1 px-3 py-1 border-green-200 text-green-800 bg-green-50"
               >
                 <UserCheck className="h-4 w-4" />
-                You are logged in as: HOD
+                Head of Department
               </Badge>
-              <Badge variant="secondary" className="px-3 py-1 bg-green-100 text-green-800">
+              <Badge variant="secondary" className="px-3 py-1 bg-gray-100 text-gray-800">
                 {profile?.full_name}
               </Badge>
             </div>
@@ -105,44 +104,50 @@ export const HODDashboard = () => {
           <Button 
             variant="outline" 
             onClick={signOut}
-            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            className="border-green-200 text-green-700 hover:bg-green-50"
           >
             Sign Out
           </Button>
         </div>
-        <Card className="border-emerald-100 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-            <CardTitle className="text-emerald-800">Pending Event Approvals</CardTitle>
+        
+        <Card className="border-green-100 shadow-sm">
+          <CardHeader className="bg-green-50 border-b border-green-100">
+            <CardTitle className="text-green-800 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Pending Event Approvals
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             {loading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
-                <p className="mt-2 text-emerald-600">Loading...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                <p className="mt-2 text-green-600">Loading...</p>
               </div>
             ) : error ? (
-              <div className="text-red-500 text-center py-8 bg-red-50 rounded-lg">{error}</div>
+              <div className="text-red-600 text-center py-8 bg-red-50 rounded-lg border border-red-200">
+                {error}
+              </div>
             ) : pendingEvents.length === 0 ? (
               <div className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">
-                No pending events.
+                No pending events for approval.
               </div>
             ) : (
               <div className="space-y-4">
                 {pendingEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center justify-between p-4 border border-emerald-100 rounded-lg bg-white hover:shadow-md transition-shadow"
+                    className="flex items-center justify-between p-4 border border-green-100 rounded-lg bg-white hover:shadow-sm transition-shadow"
                   >
                     <div>
                       <div className="font-semibold text-gray-900">{event.title}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-sm text-gray-500">
                         {event.start_date} • {event.venue_id}
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => handleApprove(event.id)}
                       >
                         <Check className="h-4 w-4 mr-1" /> Approve

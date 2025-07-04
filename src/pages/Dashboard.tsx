@@ -1,3 +1,4 @@
+
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Navigate } from "react-router-dom";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
@@ -20,8 +21,8 @@ export default function Dashboard() {
   if (userRole === "super_admin") {
     return <SuperAdminDashboard />;
   }
-  // VC (SuperAdmin, Senate Member)
-  if (userRole === "vc" || userRole === "senate_member") {
+  // Senate Member (handles VC functionality)
+  if (userRole === "senate_member") {
     return <VCDashboard />;
   }
   // Dean of Student Affairs
@@ -36,10 +37,10 @@ export default function Dashboard() {
   if (userRole === "department_head") {
     return <HODDashboard />;
   }
-  // Staff
+  // Staff and Event Coordinator
   if (userRole === "staff" || userRole === "event_coordinator") {
     return <StaffDashboard />;
   }
-  // Outsider or fallback
+  // Student or fallback
   return <StudentDashboard />;
 }
