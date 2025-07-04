@@ -22,10 +22,8 @@ export const VenueSelector = ({
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Updated venue names as requested
-  const mockVenues = [
+  const venueList = [
     {
-      id: "eti-osa-hall",
       name: "Eti-Osa Hall",
       venue_type: "hall",
       capacity: 300,
@@ -36,9 +34,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "parent-forum",
       name: "Parent Forum",
-      venue_type: "conference_room",
+      venue_type: "forum",
       capacity: 150,
       location_description: "Conference and meeting hall",
       images: [
@@ -47,9 +44,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "lr-hall",
       name: "LR Hall",
-      venue_type: "classroom",
+      venue_type: "hall",
       capacity: 120,
       location_description: "Large lecture room",
       images: [
@@ -58,9 +54,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "lt-hall",
       name: "LT Hall",
-      venue_type: "classroom",
+      venue_type: "hall",
       capacity: 200,
       location_description: "Large lecture theatre",
       images: [
@@ -69,9 +64,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "amina-namadi-sambo-hall",
       name: "Amina Namadi Sambo Hall",
-      venue_type: "auditorium",
+      venue_type: "hall",
       capacity: 500,
       location_description: "Main auditorium for large events",
       images: [
@@ -80,9 +74,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "post-graduate-building",
       name: "Post Graduate Building",
-      venue_type: "conference_room",
+      venue_type: "building",
       capacity: 80,
       location_description: "Conference rooms and seminar halls",
       images: [
@@ -91,9 +84,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "college-law-building",
       name: "College of Law Building",
-      venue_type: "classroom",
+      venue_type: "building",
       capacity: 100,
       location_description: "Law faculty lecture halls",
       images: [
@@ -102,9 +94,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "college-art-building",
       name: "College of Art Building",
-      venue_type: "hall",
+      venue_type: "building",
       capacity: 150,
       location_description: "Arts and humanities facilities",
       images: [
@@ -113,9 +104,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "college-medical-building",
       name: "College of Medical Building",
-      venue_type: "conference_room",
+      venue_type: "building",
       capacity: 90,
       location_description: "Medical school conference rooms",
       images: [
@@ -124,9 +114,8 @@ export const VenueSelector = ({
       is_active: true,
     },
     {
-      id: "shoreline-building",
       name: "Shoreline Building",
-      venue_type: "hall",
+      venue_type: "building",
       capacity: 250,
       location_description: "Modern conference and event facility",
       images: [
@@ -138,7 +127,7 @@ export const VenueSelector = ({
 
   useEffect(() => {
     // Always use the provided venue list for consistency
-    setVenues(mockVenues);
+    setVenues(venueList);
     setLoading(false);
   }, []);
 
