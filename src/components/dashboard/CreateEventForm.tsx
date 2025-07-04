@@ -1,28 +1,42 @@
+import { useState } from "react";
+import { useAuthContext } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { VenueSelector } from "./VenueSelector";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Upload, X } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
-import { useState } from 'react';
-import { useAuthContext } from '@/components/auth/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { VenueSelector } from './VenueSelector';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { Upload, X } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
-
-type EventType = Database['public']['Enums']['event_type'];
-type EventStatus = Database['public']['Enums']['event_status'];
+type EventType = Database["public"]["Enums"]["event_type"];
+type EventStatus = Database["public"]["Enums"]["event_status"];
 
 interface CreateEventFormProps {
   onClose: () => void;
   onEventCreated: () => void;
 }
 
-export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProps) => {
+export const CreateEventForm = ({
+  onClose,
+  onEventCreated,
+}: CreateEventFormProps) => {
   const { user, profile } = useAuthContext();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -30,22 +44,22 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    eventType: '' as EventType,
+    title: "",
+    description: "",
+    eventType: "" as EventType,
     startDate: new Date(),
     endDate: new Date(),
-    startTime: '09:00',
-    endTime: '17:00',
-    maxParticipants: '',
-    registrationFee: '0',
-    venueId: '',
+    startTime: "09:00",
+    endTime: "17:00",
+    maxParticipants: "",
+    registrationFee: "0",
+    venueId: "",
   });
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -63,26 +77,26 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
 
   const uploadBanner = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
       const filePath = `event-banners/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('event-images')
+        .from("event-images")
         .upload(filePath, file);
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error("Upload error:", uploadError);
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('event-images')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("event-images").getPublicUrl(filePath);
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading banner:', error);
+      console.error("Error uploading banner:", error);
       return null;
     }
   };
@@ -94,7 +108,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
     setLoading(true);
     try {
       let bannerUrl = null;
-      
+
       if (bannerFile) {
         bannerUrl = await uploadBanner(bannerFile);
         if (!bannerUrl) {
@@ -108,12 +122,23 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
         }
       }
 
+      // Validate venue selection
+      if (!formData.venueId) {
+        toast({
+          title: "Venue Required",
+          description: "Please select a venue for your event.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const startDateTime = new Date(formData.startDate);
-      const [startHours, startMinutes] = formData.startTime.split(':');
+      const [startHours, startMinutes] = formData.startTime.split(":");
       startDateTime.setHours(parseInt(startHours), parseInt(startMinutes));
 
       const endDateTime = new Date(formData.endDate);
-      const [endHours, endMinutes] = formData.endTime.split(':');
+      const [endHours, endMinutes] = formData.endTime.split(":");
       endDateTime.setHours(parseInt(endHours), parseInt(endMinutes));
 
       const eventData = {
@@ -122,27 +147,30 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
         event_type: formData.eventType as EventType,
         start_date: startDateTime.toISOString(),
         end_date: endDateTime.toISOString(),
-        max_participants: formData.maxParticipants ? parseInt(formData.maxParticipants) : null,
+        max_participants: formData.maxParticipants
+          ? parseInt(formData.maxParticipants)
+          : null,
         registration_fee: parseFloat(formData.registrationFee),
-        venue_id: formData.venueId || null,
+        venue_id: formData.venueId, // Use venue name as ID
         organizer_id: user.id,
         banner_image_url: bannerUrl,
-        status: 'draft' as EventStatus
+        status: "draft" as EventStatus,
       };
 
       const { data, error } = await supabase
-        .from('events')
+        .from("events")
         .insert(eventData)
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating event:', error);
+        console.error("Error creating event:", error);
         toast({
           title: "Error",
           description: "Failed to create event. Please try again.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
@@ -153,7 +181,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
 
       onEventCreated();
     } catch (error) {
-      console.error('Error creating event:', error);
+      console.error("Error creating event:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -169,7 +197,9 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
       <Card>
         <CardHeader>
           <CardTitle>Create New Event</CardTitle>
-          <CardDescription>Fill in the details to create your event</CardDescription>
+          <CardDescription>
+            Fill in the details to create your event
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -180,7 +210,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
                 <Input
                   id="title"
                   value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
                   placeholder="Enter event title"
                   required
                 />
@@ -188,7 +218,12 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
 
               <div className="space-y-2">
                 <Label htmlFor="eventType">Event Type</Label>
-                <Select onValueChange={(value) => handleInputChange('eventType', value as EventType)} required>
+                <Select
+                  onValueChange={(value) =>
+                    handleInputChange("eventType", value as EventType)
+                  }
+                  required
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select event type" />
                   </SelectTrigger>
@@ -209,7 +244,9 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
                 placeholder="Describe your event"
                 rows={4}
               />
@@ -222,14 +259,18 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
                 <div className="flex space-x-2">
                   <Input
                     type="date"
-                    value={format(formData.startDate, 'yyyy-MM-dd')}
-                    onChange={(e) => handleInputChange('startDate', new Date(e.target.value))}
+                    value={format(formData.startDate, "yyyy-MM-dd")}
+                    onChange={(e) =>
+                      handleInputChange("startDate", new Date(e.target.value))
+                    }
                     required
                   />
                   <Input
                     type="time"
                     value={formData.startTime}
-                    onChange={(e) => handleInputChange('startTime', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("startTime", e.target.value)
+                    }
                     required
                   />
                 </div>
@@ -240,14 +281,18 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
                 <div className="flex space-x-2">
                   <Input
                     type="date"
-                    value={format(formData.endDate, 'yyyy-MM-dd')}
-                    onChange={(e) => handleInputChange('endDate', new Date(e.target.value))}
+                    value={format(formData.endDate, "yyyy-MM-dd")}
+                    onChange={(e) =>
+                      handleInputChange("endDate", new Date(e.target.value))
+                    }
                     required
                   />
                   <Input
                     type="time"
                     value={formData.endTime}
-                    onChange={(e) => handleInputChange('endTime', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("endTime", e.target.value)
+                    }
                     required
                   />
                 </div>
@@ -258,10 +303,12 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
             <div className="space-y-2">
               <Label>Venue</Label>
               <VenueSelector
-                selectedDate={format(formData.startDate, 'yyyy-MM-dd')}
+                selectedDate={format(formData.startDate, "yyyy-MM-dd")}
                 selectedStartTime={formData.startTime}
                 selectedEndTime={formData.endTime}
-                onSelectVenue={(venueId) => handleInputChange('venueId', venueId)}
+                onSelectVenue={(venueId) =>
+                  handleInputChange("venueId", venueId)
+                }
                 value={formData.venueId}
               />
             </div>
@@ -274,7 +321,9 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
                   id="maxParticipants"
                   type="number"
                   value={formData.maxParticipants}
-                  onChange={(e) => handleInputChange('maxParticipants', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("maxParticipants", e.target.value)
+                  }
                   placeholder="Leave empty for unlimited"
                 />
               </div>
@@ -286,7 +335,9 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
                   type="number"
                   step="0.01"
                   value={formData.registrationFee}
-                  onChange={(e) => handleInputChange('registrationFee', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("registrationFee", e.target.value)
+                  }
                   placeholder="0.00"
                 />
               </div>
@@ -298,9 +349,9 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 {bannerPreview ? (
                   <div className="relative">
-                    <img 
-                      src={bannerPreview} 
-                      alt="Banner preview" 
+                    <img
+                      src={bannerPreview}
+                      alt="Banner preview"
                       className="w-full h-48 object-cover rounded-lg"
                     />
                     <Button
@@ -347,7 +398,7 @@ export const CreateEventForm = ({ onClose, onEventCreated }: CreateEventFormProp
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Event'}
+                {loading ? "Creating..." : "Create Event"}
               </Button>
             </div>
           </form>
