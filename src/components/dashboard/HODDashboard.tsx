@@ -5,7 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UserCheck, FileText, Check, X, Building2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { 
+  UserCheck, 
+  FileText, 
+  Check, 
+  X, 
+  Building2, 
+  Calendar,
+  Search,
+  Bell,
+  Settings,
+  MoreHorizontal,
+  Clock,
+  MapPin,
+  Filter
+} from "lucide-react";
 
 // Simple interface without complex type recursion
 interface SimplePendingEvent {
@@ -22,6 +37,7 @@ export const HODDashboard = () => {
   const [pendingEvents, setPendingEvents] = useState<SimplePendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!user || !profile?.department) return;
@@ -104,140 +120,247 @@ export const HODDashboard = () => {
     }
   };
 
+  const filteredEvents = pendingEvents.filter(event =>
+    event.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-green-50/30 to-green-100/50">
-      <div className="max-w-7xl mx-auto p-6 lg:p-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-green-100 to-green-200 rounded-xl shadow-sm">
-                <Building2 className="h-8 w-8 text-green-700" />
-              </div>
-              <div>
-                <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-                  Department Head Dashboard
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Manage departmental event approvals and oversight
-                </p>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-10">
+        {/* Logo */}
+        <div className="flex items-center gap-3 p-6 border-b border-gray-200">
+          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+            <Building2 className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-gray-900">Ventixe</span>
+        </div>
+
+        {/* Navigation */}
+        <nav className="p-4 space-y-2">
+          <div className="flex items-center gap-3 px-3 py-2 bg-green-50 text-green-700 rounded-lg font-medium">
+            <Building2 className="h-4 w-4" />
+            Dashboard
+          </div>
+          <div className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <Calendar className="h-4 w-4" />
+            Events
+          </div>
+          <div className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <FileText className="h-4 w-4" />
+            Approvals
+          </div>
+          <div className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <UserCheck className="h-4 w-4" />
+            Staff
+          </div>
+        </nav>
+
+        {/* User Profile */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+              {profile?.full_name?.charAt(0) || 'H'}
             </div>
-            <Button 
-              variant="outline" 
-              onClick={signOut}
-              className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 px-6 py-2 font-medium"
-            >
-              Sign Out
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{profile?.full_name}</p>
+              <p className="text-xs text-gray-500">Head of Department</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <Settings className="h-4 w-4" />
             </Button>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge
-              variant="outline"
-              className="flex items-center gap-2 px-4 py-2 border-green-200 text-green-800 bg-green-50 text-sm font-medium"
-            >
-              <UserCheck className="h-4 w-4" />
-              Head of Department
-            </Badge>
-            <Badge variant="secondary" className="px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium">
-              {profile?.department}
-            </Badge>
-            <Badge variant="secondary" className="px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium">
-              {profile?.full_name}
-            </Badge>
-          </div>
         </div>
-        
-        {/* Pending Events Card */}
-        <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-xl">
-              <FileText className="h-6 w-6" />
-              Pending Event Approvals
-              {pendingEvents.length > 0 && (
-                <Badge className="bg-white/20 text-white border-white/30 font-semibold">
-                  {pendingEvents.length}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 lg:p-8">
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                <p className="text-green-600 font-medium">Loading events...</p>
+      </div>
+
+      {/* Main Content */}
+      <div className="ml-64">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{profile?.department} Dashboard</h1>
+              <p className="text-gray-600 mt-1">Hello {profile?.full_name?.split(' ')[0]}, welcome back!</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search anything"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-80 bg-gray-50 border-gray-200"
+                />
               </div>
-            ) : error ? (
-              <div className="text-red-600 text-center py-12 bg-red-50 rounded-xl border border-red-200">
-                <div className="text-lg font-semibold mb-2">Error Loading Events</div>
-                <p className="text-red-500">{error}</p>
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5" />
+                {pendingEvents.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {pendingEvents.length}
+                  </span>
+                )}
+              </Button>
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                {profile?.full_name?.charAt(0) || 'H'}
               </div>
-            ) : pendingEvents.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="bg-gray-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <FileText className="h-8 w-8 text-gray-400" />
+            </div>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <main className="p-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Pending Events</CardTitle>
+                <FileText className="h-4 w-4 opacity-90" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pendingEvents.length}</div>
+                <p className="text-xs opacity-90">Require your approval</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Total Events</CardTitle>
+                <Calendar className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-900">124</div>
+                <p className="text-xs text-gray-600">This semester</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Department Staff</CardTitle>
+                <UserCheck className="h-4 w-4 text-gray-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-900">32</div>
+                <p className="text-xs text-gray-600">Active members</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Approved Events</CardTitle>
+                <Check className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-900">89</div>
+                <p className="text-xs text-gray-600">This month</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Pending Approvals */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Pending Event Approvals</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">Events waiting for your approval</p>
                 </div>
-                <div className="text-gray-500 text-lg font-semibold mb-2">No Pending Events</div>
-                <p className="text-gray-400">All departmental events have been reviewed.</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filter
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex flex-col lg:flex-row lg:items-center justify-between p-6 border border-green-100 rounded-xl bg-gradient-to-r from-white to-green-50/30 hover:shadow-md hover:border-green-200 transition-all duration-200"
-                  >
-                    <div className="flex-1 mb-4 lg:mb-0">
-                      <div className="font-semibold text-gray-900 text-lg mb-3">{event.title}</div>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <div>
-                          <span className="font-medium">Date:</span> {
-                            event.start_date 
-                              ? new Date(event.start_date).toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })
-                              : 'To be determined'
-                          }
+            </CardHeader>
+            <CardContent className="p-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                  <p className="ml-3 text-gray-600">Loading events...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="font-medium mb-1">Error Loading Events</div>
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              ) : filteredEvents.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="bg-gray-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Pending Events</h3>
+                  <p className="text-gray-600">All departmental events have been reviewed.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow bg-white"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Calendar className="h-6 w-6 text-green-600" />
                         </div>
-                        <div>
-                          <span className="font-medium">Venue:</span> {event.venue_id || 'To be determined'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Department:</span> {profile?.department}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 mb-2">{event.title}</h4>
+                          <div className="flex items-center gap-6 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {event.start_date 
+                                ? new Date(event.start_date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })
+                                : 'Date TBD'
+                              }
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {event.venue_id || 'Venue TBD'}
+                            </div>
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                              Pending Review
+                            </Badge>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-200 text-green-700 hover:bg-green-50"
+                          onClick={() => handleApprove(event.id)}
+                          disabled={loading}
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-200 text-red-700 hover:bg-red-50"
+                          onClick={() => handleReject(event.id)}
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-3 lg:ml-6">
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 font-medium shadow-sm"
-                        onClick={() => handleApprove(event.id)}
-                        disabled={loading}
-                      >
-                        <Check className="h-4 w-4 mr-2" /> 
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="px-4 py-2 font-medium shadow-sm"
-                        onClick={() => handleReject(event.id)}
-                        disabled={loading}
-                      >
-                        <X className="h-4 w-4 mr-2" /> 
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </main>
       </div>
     </div>
   );
