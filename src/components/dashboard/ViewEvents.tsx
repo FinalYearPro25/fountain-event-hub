@@ -65,6 +65,64 @@ export const ViewEvents = ({ onBack }: ViewEventsProps) => {
     fetchMyEvents();
   }, [user]);
 
+  // Function to submit a draft event for approval
+  const handleSubmitForApproval = async (eventId: string) => {
+    setLoading(true);
+    try {
+      // Fetch the event to get its approver_role
+      const { data: event, error: fetchError } = await supabase
+        .from("events")
+        .select("approver_role")
+        .eq("id", eventId)
+        .single();
+      if (fetchError || !event || typeof event.approver_role !== "string") {
+        console.error("Error fetching event for approval:", fetchError);
+        setLoading(false);
+        return;
+      }
+      type EventStatus =
+        | "approved"
+        | "rejected"
+        | "draft"
+        | "pending_approval"
+        | "cancelled"
+        | "completed"
+        | "pending_student_affairs"
+        | "pending_vc";
+      let newStatus: EventStatus = "pending_approval";
+      switch (event.approver_role) {
+        case "student_affairs":
+          newStatus = "pending_student_affairs";
+          break;
+        case "senate_member":
+          newStatus = "pending_vc";
+          break;
+        // department_head and staff both use 'pending_approval'
+        default:
+          newStatus = "pending_approval";
+      }
+      const { error } = await supabase
+        .from("events")
+        .update({ status: newStatus })
+        .eq("id", eventId);
+      if (error) {
+        console.error("Error submitting event for approval:", error);
+      } else {
+        // Refresh events list after submission
+        const { data: eventsData } = await supabase
+          .from("events")
+          .select("*")
+          .eq("organizer_id", user.id)
+          .order("created_at", { ascending: false });
+        setEvents(eventsData || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusLabel = (status) => {
     switch (status) {
       case "draft":
@@ -186,6 +244,18 @@ export const ViewEvents = ({ onBack }: ViewEventsProps) => {
                           <span>
                             Max: {event.max_participants} participants
                           </span>
+                        </div>
+                      )}
+                      {/* Show 'Submit for Approval' button if event is draft */}
+                      {event.status === "draft" && (
+                        <div className="pt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSubmitForApproval(event.id)}
+                            disabled={loading}
+                          >
+                            {loading ? "Submitting..." : "Submit for Approval"}
+                          </Button>
                         </div>
                       )}
                     </div>

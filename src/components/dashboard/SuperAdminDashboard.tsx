@@ -18,11 +18,18 @@ import {
   Filter,
   Calendar,
   FileText,
+  MapPin,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/components/auth/AuthProvider";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface PendingRegistration {
   id: string;
@@ -58,6 +65,8 @@ export const SuperAdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  // Add modal state for each feature
+  const [openModal, setOpenModal] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -191,17 +200,54 @@ export const SuperAdminDashboard = () => {
             <Shield className="h-4 w-4" />
             Super Admin
           </div>
-          <div className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("user-management")}
+          >
             <Users className="h-4 w-4" />
             User Management
           </div>
-          <div className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("role-approvals")}
+          >
             <UserCheck className="h-4 w-4" />
             Role Approvals
           </div>
-          <div className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("event-oversight")}
+          >
             <Calendar className="h-4 w-4" />
-            System Overview
+            Event Oversight
+          </div>
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("venue-management")}
+          >
+            <MapPin className="h-4 w-4" />
+            Venue Management
+          </div>
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("reports")}
+          >
+            <FileText className="h-4 w-4" />
+            Reports
+          </div>
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("settings")}
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </div>
+          <div
+            className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+            onClick={() => setOpenModal("security")}
+          >
+            <Shield className="h-4 w-4" />
+            Security
           </div>
         </nav>
         {/* User Profile */}
@@ -329,6 +375,28 @@ export const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+      {/* Feature Modals */}
+      <Dialog open={openModal !== null} onOpenChange={() => setOpenModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {openModal === "user-management" && "User Management"}
+              {openModal === "role-approvals" && "Role Approvals"}
+              {openModal === "event-oversight" && "Event Oversight"}
+              {openModal === "venue-management" && "Venue Management"}
+              {openModal === "reports" && "Reports"}
+              {openModal === "settings" && "Settings"}
+              {openModal === "security" && "Security"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center text-gray-600">
+            Feature coming soon or not yet implemented.
+          </div>
+          <div className="flex justify-center">
+            <Button onClick={() => setOpenModal(null)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

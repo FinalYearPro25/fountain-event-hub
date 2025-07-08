@@ -54,6 +54,7 @@ export const CreateEventForm = ({
     maxParticipants: "",
     registrationFee: "0",
     venueId: "",
+    approverRole: "staff", // Default approver role
   });
 
   const handleInputChange = (field: string, value: any) => {
@@ -103,7 +104,22 @@ export const CreateEventForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !profile) return;
+    if (!user) {
+      toast({
+        title: "Not Authenticated",
+        description: "You must be logged in to create an event.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!profile) {
+      toast({
+        title: "Profile Incomplete",
+        description: "Please complete your profile before creating an event.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -155,6 +171,7 @@ export const CreateEventForm = ({
         organizer_id: user.id,
         banner_image_url: bannerUrl,
         status: "draft" as EventStatus,
+        approver_role: formData.approverRole, // Store selected approver role
       };
 
       const { data, error } = await supabase
@@ -167,7 +184,8 @@ export const CreateEventForm = ({
         console.error("Error creating event:", error);
         toast({
           title: "Error",
-          description: "Failed to create event. Please try again.",
+          description:
+            error.message || "Failed to create event. Please try again.",
           variant: "destructive",
         });
         setLoading(false);
@@ -310,7 +328,33 @@ export const CreateEventForm = ({
                   handleInputChange("venueId", venueId)
                 }
                 value={formData.venueId}
+                requiredCapacity={parseInt(formData.maxParticipants) || 0}
               />
+            </div>
+
+            {/* Approver Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="approverRole">Select Approver</Label>
+              <Select
+                value={formData.approverRole}
+                onValueChange={(value) =>
+                  handleInputChange("approverRole", value)
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select approver role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="dean">Dean</SelectItem>
+                  <SelectItem value="department_head">HOD</SelectItem>
+                  <SelectItem value="student_affairs">
+                    Student Affairs
+                  </SelectItem>
+                  <SelectItem value="senate_member">Senate</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Capacity and Fee */}

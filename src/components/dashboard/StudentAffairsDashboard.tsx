@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,10 +31,12 @@ export const StudentAffairsDashboard = () => {
     setError("");
     const fetchPending = async () => {
       try {
+        // Only fetch events where approver_role is 'student_affairs'
         const { data, error } = await supabase
           .from("events")
           .select("*")
-          .eq("status", "pending_student_affairs");
+          .eq("status", "pending_student_affairs")
+          .eq("approver_role", "student_affairs");
         if (error) throw error;
         setPendingEvents(data || []);
       } catch (err) {
@@ -95,20 +96,23 @@ export const StudentAffairsDashboard = () => {
                 <UserCheck className="h-4 w-4" />
                 Dean of Student Affairs
               </Badge>
-              <Badge variant="secondary" className="px-3 py-1 bg-gray-100 text-gray-800">
+              <Badge
+                variant="secondary"
+                className="px-3 py-1 bg-gray-100 text-gray-800"
+              >
                 {profile?.full_name}
               </Badge>
             </div>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={signOut}
             className="border-green-200 text-green-700 hover:bg-green-50"
           >
             Sign Out
           </Button>
         </div>
-        
+
         <Card className="border-green-100 shadow-sm">
           <CardHeader className="bg-green-50 border-b border-green-100">
             <CardTitle className="text-green-800 flex items-center gap-2">
@@ -138,7 +142,9 @@ export const StudentAffairsDashboard = () => {
                     className="flex items-center justify-between p-4 border border-green-100 rounded-lg bg-white hover:shadow-sm transition-shadow"
                   >
                     <div>
-                      <div className="font-semibold text-gray-900">{event.title}</div>
+                      <div className="font-semibold text-gray-900">
+                        {event.title}
+                      </div>
                       <div className="text-sm text-gray-500">
                         {event.start_date} • {event.venue_id}
                       </div>

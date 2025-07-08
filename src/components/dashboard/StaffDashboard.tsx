@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +7,13 @@ import { ViewVenues } from "./ViewVenues";
 import { BrowseEvents } from "./BrowseEvents";
 import { ApprovalWorkflow } from "./ApprovalWorkflow";
 import { UserHeader } from "@/components/common/UserHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +33,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Database } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 type EventStatus = Database["public"]["Enums"]["event_status"];
-type EventRecord = Database["public"]["Tables"]["events"]["Row"];
+
+interface Event {
+  id: string;
+  title: string;
+  start_date?: string;
+  venue_id?: string;
+  status?: EventStatus;
+  organizer_id?: string;
+  department?: string;
+  approver_role?: string; // Added approver_role
+  [key: string]: any;
+}
 
 interface Stats {
   myEvents: number;
@@ -47,8 +64,9 @@ export const StaffDashboard = () => {
   const [showBrowseEvents, setShowBrowseEvents] = useState(false);
 
   // Real data state
-  const [myEvents, setMyEvents] = useState<EventRecord[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<EventRecord[]>([]);
+  const [myEvents, setMyEvents] = useState<Event[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<Event[]>([]);
+  const [approvedEvents, setApprovedEvents] = useState<Event[]>([]);
   const [stats, setStats] = useState<Stats>({
     myEvents: 0,
     registrations: 0,
@@ -61,44 +79,55 @@ export const StaffDashboard = () => {
   // Add state for modals
   const [showReports, setShowReports] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-
-  const fetchData = async () => {
-    if (!user) return;
-    setLoading(true);
-    setError("");
-    try {
-      // Fetch events created by the staff
-      const { data: created, error: createdErr } = await supabase
-        .from("events")
-        .select("*")
-        .eq("organizer_id", user.id);
-      if (createdErr) throw createdErr;
-      setMyEvents(created || []);
-
-      // Fetch events assigned to this staff member for approval
-      const { data: assignedEvents, error: assignedErr } = await supabase
-        .from("events")
-        .select("*")
-        .eq("staff_assigned_to", user.id)
-        .in("status", ["pending_approval", "pending_student_affairs", "pending_vc"]);
-      if (assignedErr) throw assignedErr;
-      setPendingApprovals(assignedEvents || []);
-
-      // Stats
-      setStats({
-        myEvents: (created || []).length,
-        registrations: 0,
-        venues: (created || []).length,
-        pending: (assignedEvents || []).length,
-      });
-    } catch (err) {
-      setError("Failed to load dashboard data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { toast } = useToast();
 
   useEffect(() => {
+    if (!user || !profile) return;
+    setLoading(true);
+    setError("");
+    async function fetchData() {
+      try {
+        // Fetch events created by the staff
+        const createdRes = await supabase
+          .from("events")
+          .select("*")
+          .eq("organizer_id", user.id);
+        if (createdRes.error) throw createdRes.error;
+        setMyEvents(createdRes.data || []);
+
+        // Fetch all events pending staff approval (no department filter)
+        const pendingRes = await supabase
+          .from("events")
+          .select("*")
+          .eq("status", "pending_approval")
+          .eq("approver_role", "staff");
+        if (pendingRes.error) throw pendingRes.error;
+        // Debug log
+        console.log("[DEBUG] Pending staff approvals:", pendingRes.data);
+        setPendingApprovals(pendingRes.data || []);
+
+        // Fetch all approved events
+        const approvedRes = await supabase
+          .from("events")
+          .select("*")
+          .eq("status", "approved")
+          .order("start_date", { ascending: true });
+        if (approvedRes.error) throw approvedRes.error;
+        setApprovedEvents(approvedRes.data || []);
+
+        // Stats
+        setStats({
+          myEvents: (createdRes.data || []).length,
+          registrations: 0,
+          venues: (createdRes.data || []).length,
+          pending: (pendingRes.data || []).length,
+        });
+      } catch (err) {
+        setError("Failed to load dashboard data.");
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchData();
   }, [user, profile]);
 
@@ -110,8 +139,87 @@ export const StaffDashboard = () => {
     return roleMap[role] || role.toUpperCase();
   };
 
+  // Approve or reject event
+  const handleApprove = async (eventId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ status: "approved" })
+        .eq("id", eventId);
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to approve event.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Event Approved",
+          description: "The event has been approved.",
+        });
+        // Refresh pending approvals
+        const pendingRes = await supabase
+          .from("events")
+          .select("*")
+          .eq("status", "pending_approval")
+          .eq("approver_role", "staff");
+        setPendingApprovals(pendingRes.data || []);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to approve event.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleReject = async (eventId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ status: "rejected" })
+        .eq("id", eventId);
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to reject event.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Event Rejected",
+          description: "The event has been rejected.",
+        });
+        // Refresh pending approvals
+        const pendingRes = await supabase
+          .from("events")
+          .select("*")
+          .eq("status", "pending_approval")
+          .eq("approver_role", "staff");
+        setPendingApprovals(pendingRes.data || []);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to reject event.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (showCreateEvent) {
-    return <CreateEvent onBack={() => setShowCreateEvent(false)} onSuccess={fetchData} />;
+    return (
+      <CreateEvent
+        onBack={() => setShowCreateEvent(false)}
+        onSuccess={fetchData}
+      />
+    );
   }
   if (showViewEvents) {
     return <ViewEvents onBack={() => setShowViewEvents(false)} />;
@@ -124,27 +232,61 @@ export const StaffDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <UserHeader 
-        title="Staff Dashboard" 
-        subtitle="Manage events and approvals"
-      />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header with Role Confirmation */}
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">
+              Staff Dashboard
+            </h1>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 px-3 py-1 border-emerald-200 text-emerald-700"
+              >
+                <UserCheck className="h-4 w-4" />
+                You are logged in as:{" "}
+                {getRoleDisplayName(profile?.role || "staff")}
+              </Badge>
+              <Badge
+                variant="secondary"
+                className="px-3 py-1 bg-green-100 text-green-800"
+              >
+                {profile?.full_name}
+              </Badge>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              // Assuming signOut is available in the context or passed as a prop
+              // For now, we'll just close the dialog if it's open
+              // In a real app, you'd call a sign-out function here
+            }}
+            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          >
+            Sign Out
+          </Button>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
             <p className="ml-3 text-emerald-600">Loading dashboard...</p>
           </div>
         ) : error ? (
-          <div className="text-red-500 text-center py-8 bg-red-50 rounded-lg">{error}</div>
+          <div className="text-red-500 text-center py-8 bg-red-50 rounded-lg">
+            {error}
+          </div>
         ) : (
           <>
             {/* Quick Actions */}
             <div className="mb-8">
               <Card className="border-emerald-100 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">Quick Actions</CardTitle>
+                  <CardTitle className="text-emerald-800">
+                    Quick Actions
+                  </CardTitle>
                   <CardDescription className="text-emerald-600">
                     Get started with common tasks
                   </CardDescription>
@@ -213,10 +355,10 @@ export const StaffDashboard = () => {
                   <Calendar className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">{stats.myEvents}</div>
-                  <p className="text-xs text-emerald-600">
-                    Events organized
-                  </p>
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {stats.myEvents}
+                  </div>
+                  <p className="text-xs text-emerald-600">Events organized</p>
                 </CardContent>
               </Card>
               <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
@@ -230,9 +372,7 @@ export const StaffDashboard = () => {
                   <div className="text-2xl font-bold text-emerald-700">
                     {stats.registrations}
                   </div>
-                  <p className="text-xs text-emerald-600">
-                    Across all events
-                  </p>
+                  <p className="text-xs text-emerald-600">Across all events</p>
                 </CardContent>
               </Card>
               <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
@@ -243,7 +383,9 @@ export const StaffDashboard = () => {
                   <MapPin className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">{stats.venues}</div>
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {stats.venues}
+                  </div>
                   <p className="text-xs text-emerald-600">This month</p>
                 </CardContent>
               </Card>
@@ -255,18 +397,18 @@ export const StaffDashboard = () => {
                   <FileText className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">{stats.pending}</div>
-                  <p className="text-xs text-emerald-600">
-                    Awaiting review
-                  </p>
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {stats.pending}
+                  </div>
+                  <p className="text-xs text-emerald-600">Awaiting review</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Approval Workflow */}
             <div className="mb-8">
-              <ApprovalWorkflow 
-                events={pendingApprovals} 
+              <ApprovalWorkflow
+                events={pendingApprovals}
                 onEventUpdated={fetchData}
               />
             </div>
@@ -275,7 +417,9 @@ export const StaffDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-emerald-100 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">My Events & Status</CardTitle>
+                  <CardTitle className="text-emerald-800">
+                    My Events & Status
+                  </CardTitle>
                   <CardDescription className="text-emerald-600">
                     Track your event approvals and status
                   </CardDescription>
@@ -293,14 +437,16 @@ export const StaffDashboard = () => {
                           className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
                         >
                           <div>
-                            <p className="font-medium text-gray-900">{event.title}</p>
+                            <p className="font-medium text-gray-900">
+                              {event.title}
+                            </p>
                             <p className="text-sm text-gray-600">
                               {event.start_date?.slice(0, 10)} •{" "}
                               {event.venue_id} • {event.status}
                             </p>
                           </div>
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className="border-emerald-200 text-emerald-700"
                           >
                             {event.status}
@@ -311,19 +457,106 @@ export const StaffDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="border-emerald-100 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">Recent Activity</CardTitle>
+                  <CardTitle className="text-emerald-800">
+                    Pending Approvals
+                  </CardTitle>
                   <CardDescription className="text-emerald-600">
                     Latest updates and notifications
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
-                      No recent activity.
-                    </div>
+                    {pendingApprovals.length === 0 ? (
+                      <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
+                        No pending approvals.
+                      </div>
+                    ) : (
+                      pendingApprovals.map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-center justify-between p-3 border-l-4 border-yellow-500 bg-yellow-50 rounded-r-lg"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {event.title}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {event.start_date?.slice(0, 10)} •{" "}
+                              {event.venue_id} • {event.status}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <Badge
+                              variant="outline"
+                              className="border-yellow-200 text-yellow-700"
+                            >
+                              Pending
+                            </Badge>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => handleApprove(event.id)}
+                              disabled={loading}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleReject(event.id)}
+                              disabled={loading}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-emerald-100 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
+                  <CardTitle className="text-emerald-800">
+                    Upcoming Approved Events
+                  </CardTitle>
+                  <CardDescription className="text-emerald-600">
+                    All approved events happening soon
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {approvedEvents.length === 0 ? (
+                      <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
+                        No approved events yet.
+                      </div>
+                    ) : (
+                      approvedEvents.slice(0, 5).map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {event.title}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {event.start_date?.slice(0, 10)} •{" "}
+                              {event.venue_id}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-200 text-emerald-700 bg-emerald-50"
+                          >
+                            Approved
+                          </Badge>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -331,7 +564,7 @@ export const StaffDashboard = () => {
           </>
         )}
       </div>
-      
+
       <Dialog open={showReports} onOpenChange={setShowReports}>
         <DialogContent className="border-emerald-100">
           <DialogHeader>
@@ -343,11 +576,13 @@ export const StaffDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
-      
+
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="border-emerald-100">
           <DialogHeader>
-            <DialogTitle className="text-emerald-800">Event Settings</DialogTitle>
+            <DialogTitle className="text-emerald-800">
+              Event Settings
+            </DialogTitle>
           </DialogHeader>
           <div className="text-gray-700">
             Event settings feature coming soon! Here you will be able to

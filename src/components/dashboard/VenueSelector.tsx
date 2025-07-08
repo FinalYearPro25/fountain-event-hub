@@ -18,6 +18,7 @@ export const VenueSelector = ({
   selectedEndTime,
   onSelectVenue,
   value,
+  requiredCapacity = 0, // Add requiredCapacity prop
 }) => {
   const [venues, setVenues] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -186,24 +187,33 @@ export const VenueSelector = ({
     );
   };
 
-  const generateSuggestions = (targetCapacity, unavailableVenueId) => {
-    const availableVenues = venues.filter(
-      (venue) => 
-        venue.id !== unavailableVenueId && 
-        isVenueAvailable(venue.id) &&
-        Math.abs(venue.capacity - targetCapacity) <= targetCapacity * 0.5 // Within 50% capacity range
-    );
-
-    // Sort by capacity similarity
-    return availableVenues
-      .sort((a, b) => Math.abs(a.capacity - targetCapacity) - Math.abs(b.capacity - targetCapacity))
-      .slice(0, 3); // Show top 3 suggestions
+  // Find next available time for a venue
+  const getNextAvailableTime = (venueId) => {
+    if (!selectedDate || !selectedStartTime || !selectedEndTime) return null;
+    const end = new Date(`${selectedDate}T${selectedEndTime}`);
+    // Find the latest end_time for this venue that overlaps or is before the requested time
+    const bookingsForVenue = bookings
+      .filter((b) => b.venue_id === venueId)
+      .sort(
+        (a, b) =>
+          new Date(a.end_time).getTime() - new Date(b.end_time).getTime()
+      );
+    let nextAvailable = end;
+    for (const b of bookingsForVenue) {
+      if (new Date(b.end_time) > end) {
+        nextAvailable = new Date(b.end_time);
+        break;
+      }
+    }
+    return nextAvailable;
   };
 
-  const handleUnavailableVenueClick = (venue) => {
-    const suggestedVenues = generateSuggestions(venue.capacity, venue.id);
-    setSuggestions(suggestedVenues);
-  };
+  // Suggest alternative venues that are available and have enough capacity
+  const suggestedVenues = venues.filter(
+    (venue) =>
+      isVenueAvailable(venue.id) &&
+      (!requiredCapacity || venue.capacity >= requiredCapacity)
+  );
 
   if (loading) return <div>Loading venues...</div>;
 
@@ -235,11 +245,14 @@ export const VenueSelector = ({
           </AlertDescription>
         </Alert>
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {venues.map((venue) => {
           const available = isVenueAvailable(venue.id);
           const isSelected = value === venue.id;
+          const nextAvailable = !available
+            ? getNextAvailableTime(venue.id)
+            : null;
           return (
             <Card
               key={venue.id}
@@ -290,7 +303,17 @@ export const VenueSelector = ({
                         onSelectVenue(venue.id);
                         setSuggestions([]);
                       } else {
-                        handleUnavailableVenueClick(venue);
+                        // The handleUnavailableVenueClick function was removed,
+                        // so we'll just show the next available time if available.
+                        // If not available, we'll show a message indicating it's not available.
+                        if (nextAvailable) {
+                          onSelectVenue(venue.id); // Select the venue at the next available time
+                          setSuggestions([]);
+                        } else {
+                          // If no next available time, we can't select it.
+                          // We could potentially show a message here or just do nothing.
+                          // For now, we'll just show the message.
+                        }
                       }
                     }}
                   >
@@ -309,7 +332,13 @@ export const VenueSelector = ({
                 </div>
                 {!available && (
                   <div className="text-xs text-red-600 mt-1">
-                    This venue is not available for the selected time. Click "Unavailable" to see similar venues.
+                    This venue is not available for the selected time.
+                    <br />
+                    {nextAvailable && (
+                      <>
+                        Next available after: {nextAvailable.toLocaleString()}
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -317,6 +346,24 @@ export const VenueSelector = ({
           );
         })}
       </div>
+      {/* Venue suggestions */}
+      {suggestedVenues.length > 0 && (
+        <div className="mt-4">
+          <div className="font-semibold text-green-700 mb-2">
+            Suggested Available Venues:
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestedVenues.map((venue) => (
+              <span
+                key={venue.id}
+                className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs"
+              >
+                {venue.name} (Capacity: {venue.capacity})
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

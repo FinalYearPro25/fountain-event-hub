@@ -62,6 +62,7 @@ export const StudentDashboard = () => {
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [approvedEvents, setApprovedEvents] = useState<Event[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -72,9 +73,15 @@ export const StudentDashboard = () => {
         const [
           { data: created, error: createdErr },
           { data: venuesData, error: venuesErr },
+          { data: approved, error: approvedErr },
         ] = await Promise.all([
           supabase.from("events").select("*").eq("organizer_id", user.id),
           supabase.from("venues").select("*").eq("is_active", true),
+          supabase
+            .from("events")
+            .select("*")
+            .eq("status", "approved")
+            .order("start_date", { ascending: true }),
         ]);
         if (createdErr) throw createdErr;
         setMyEvents(created || []);
@@ -88,6 +95,7 @@ export const StudentDashboard = () => {
               (e) => e.status === "pending_approval" || e.status === "draft"
             ).length || 0,
         });
+        setApprovedEvents(approved || []);
       } catch (err) {
         setError("Failed to load dashboard data.");
       } finally {
@@ -371,6 +379,58 @@ export const StudentDashboard = () => {
                               {event.start_date?.slice(0, 10)} •{" "}
                               {event.venue_id}
                             </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-soft border-0 bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-800">
+                    <Calendar className="h-5 w-5" />
+                    Upcoming Approved Events
+                  </CardTitle>
+                  <CardDescription>
+                    All approved events happening soon
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {approvedEvents.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p className="font-medium mb-2">
+                          No approved events yet
+                        </p>
+                        <p className="text-sm">
+                          Check back later for upcoming events
+                        </p>
+                      </div>
+                    ) : (
+                      approvedEvents.slice(0, 5).map((event) => (
+                        <div
+                          key={event.id}
+                          className="p-4 border border-green-100 rounded-lg bg-green-50/50 hover:bg-green-50 transition-colors duration-200"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">
+                                {event.title}
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {event.start_date?.slice(0, 10)} •{" "}
+                                {event.venue_id}
+                              </p>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="border-green-200 text-green-700 bg-green-50"
+                            >
+                              Approved
+                            </Badge>
                           </div>
                         </div>
                       ))
