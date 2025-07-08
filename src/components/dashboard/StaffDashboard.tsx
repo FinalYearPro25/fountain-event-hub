@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,17 +30,7 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 
 type EventStatus = Database["public"]["Enums"]["event_status"];
-
-interface Event {
-  id: string;
-  title: string;
-  start_date?: string;
-  venue_id?: string;
-  status?: EventStatus;
-  organizer_id?: string;
-  department?: string;
-  [key: string]: any;
-}
+type EventRecord = Database["public"]["Tables"]["events"]["Row"];
 
 interface Stats {
   myEvents: number;
@@ -56,8 +47,8 @@ export const StaffDashboard = () => {
   const [showBrowseEvents, setShowBrowseEvents] = useState(false);
 
   // Real data state
-  const [myEvents, setMyEvents] = useState<Event[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<Event[]>([]);
+  const [myEvents, setMyEvents] = useState<EventRecord[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<EventRecord[]>([]);
   const [stats, setStats] = useState<Stats>({
     myEvents: 0,
     registrations: 0,
