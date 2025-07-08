@@ -76,12 +76,21 @@ export const StaffDashboard = () => {
     setLoading(true);
     setError("");
     try {
+      console.log("[DEBUG] Current user ID:", user.id);
+      console.log("[DEBUG] Current user role:", profile.role);
+
       // Fetch events created by the staff
       const createdRes = await supabase
         .from("events")
         .select("*")
         .eq("organizer_id", user.id);
-      if (createdRes.error) throw createdRes.error;
+      
+      if (createdRes.error) {
+        console.error("[ERROR] Failed to fetch created events:", createdRes.error);
+        throw createdRes.error;
+      }
+      
+      console.log("[DEBUG] Created events:", createdRes.data);
       setMyEvents(createdRes.data || []);
 
       // Fetch events assigned to this staff member for approval
@@ -89,8 +98,13 @@ export const StaffDashboard = () => {
         .from("events")
         .select("*")
         .eq("staff_assigned_to", user.id)
-        .in("status", ["pending_approval"]);
-      if (pendingRes.error) throw pendingRes.error;
+        .in("status", ["pending_approval", "pending_student_affairs", "pending_vc"]);
+      
+      if (pendingRes.error) {
+        console.error("[ERROR] Failed to fetch pending approvals:", pendingRes.error);
+        throw pendingRes.error;
+      }
+      
       console.log("[DEBUG] Pending staff approvals for user:", user.id, pendingRes.data);
       setPendingApprovals(pendingRes.data || []);
 
@@ -100,19 +114,39 @@ export const StaffDashboard = () => {
         .select("*")
         .eq("status", "approved")
         .order("start_date", { ascending: true });
-      if (approvedRes.error) throw approvedRes.error;
+      
+      if (approvedRes.error) {
+        console.error("[ERROR] Failed to fetch approved events:", approvedRes.error);
+        throw approvedRes.error;
+      }
+      
+      console.log("[DEBUG] Approved events:", approvedRes.data);
       setApprovedEvents(approvedRes.data || []);
 
-      // Stats
+      // Calculate stats
+      const myEventsCount = (createdRes.data || []).length;
+      const pendingCount = (pendingRes.data || []).length;
+      
       setStats({
-        myEvents: (createdRes.data || []).length,
-        registrations: 0,
-        venues: (createdRes.data || []).length,
-        pending: (pendingRes.data || []).length,
+        myEvents: myEventsCount,
+        registrations: 0, // TODO: Fetch actual registrations count
+        venues: myEventsCount, // Using events count as venues for now
+        pending: pendingCount,
       });
+
+      console.log("[DEBUG] Dashboard stats:", {
+        myEvents: myEventsCount,
+        pending: pendingCount,
+      });
+
     } catch (err) {
-      console.error("Error fetching dashboard data:", err);
+      console.error("[ERROR] Error fetching dashboard data:", err);
       setError("Failed to load dashboard data.");
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -177,15 +211,14 @@ export const StaffDashboard = () => {
           <Button
             variant="outline"
             onClick={() => {
-              // Assuming signOut is available in the context or passed as a prop
-              // For now, we'll just close the dialog if it's open
-              // In a real app, you'd call a sign-out function here
+              // Sign out functionality would go here
             }}
             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
           >
             Sign Out
           </Button>
         </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
@@ -194,6 +227,11 @@ export const StaffDashboard = () => {
         ) : error ? (
           <div className="text-red-500 text-center py-8 bg-red-50 rounded-lg">
             {error}
+            <div className="mt-4">
+              <Button onClick={fetchData} variant="outline">
+                Try Again
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -321,6 +359,25 @@ export const StaffDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Debug Information */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-8">
+                <Card className="border-yellow-200 bg-yellow-50">
+                  <CardHeader>
+                    <CardTitle className="text-yellow-800 text-sm">
+                      Debug Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-yellow-700">
+                    <p>User ID: {user?.id}</p>
+                    <p>Role: {profile?.role}</p>
+                    <p>Pending Approvals: {pendingApprovals.length}</p>
+                    <p>Events assigned to me: {pendingApprovals.map(e => e.title).join(", ") || "None"}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Approval Workflow */}
             <div className="mb-8">

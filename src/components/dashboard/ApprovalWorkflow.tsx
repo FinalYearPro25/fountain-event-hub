@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Check, X, Clock, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Event {
   id: string;
@@ -19,6 +20,7 @@ interface Event {
   venue_id?: string;
   event_type: string;
   max_participants?: number;
+  staff_assigned_to?: string;
 }
 
 interface ApprovalWorkflowProps {
@@ -30,8 +32,11 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
   const { profile } = useAuthContext();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [comments, setComments] = useState<{ [key: string]: string }>({});
+  const { toast } = useToast();
 
   const getNextStatus = (currentStatus: string, userRole: string) => {
+    console.log("[DEBUG] Getting next status for:", { currentStatus, userRole });
+    
     const approvalFlow = {
       pending_approval: {
         staff: 'pending_student_affairs',
@@ -46,34 +51,62 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
       }
     };
 
-    return approvalFlow[currentStatus]?.[userRole] || 'approved';
+    const nextStatus = approvalFlow[currentStatus]?.[userRole] || 'approved';
+    console.log("[DEBUG] Next status will be:", nextStatus);
+    return nextStatus;
   };
 
   const canApprove = (event: Event) => {
     const userRole = profile?.role;
     
+    console.log("[DEBUG] Checking if user can approve:", {
+      eventId: event.id,
+      eventTitle: event.title,
+      eventStatus: event.status,
+      userRole,
+      staffAssignedTo: event.staff_assigned_to
+    });
+    
     // Check if user can approve based on event status and their role
     switch (event.status) {
       case 'pending_approval':
-        return ['staff', 'event_coordinator', 'department_head'].includes(userRole);
+        const canApproveInitial = ['staff', 'event_coordinator', 'department_head'].includes(userRole);
+        console.log("[DEBUG] Can approve initial:", canApproveInitial);
+        return canApproveInitial;
       case 'pending_student_affairs':
-        return userRole === 'dean_student_affairs';
+        const canApproveStudentAffairs = userRole === 'dean_student_affairs';
+        console.log("[DEBUG] Can approve student affairs:", canApproveStudentAffairs);
+        return canApproveStudentAffairs;
       case 'pending_vc':
-        return userRole === 'senate_member';
+        const canApproveVC = userRole === 'senate_member';
+        console.log("[DEBUG] Can approve VC:", canApproveVC);
+        return canApproveVC;
       default:
+        console.log("[DEBUG] Cannot approve - unknown status");
         return false;
     }
   };
 
   const handleApproval = async (eventId: string, approve: boolean) => {
+    console.log("[DEBUG] Handling approval:", { eventId, approve });
     setActionLoading(eventId);
     
     try {
       const event = events.find(e => e.id === eventId);
-      if (!event) return;
+      if (!event) {
+        console.error("[ERROR] Event not found:", eventId);
+        return;
+      }
 
       let newStatus = approve ? getNextStatus(event.status, profile?.role || '') : 'rejected';
       
+      console.log("[DEBUG] Updating event status:", {
+        eventId,
+        currentStatus: event.status,
+        newStatus,
+        userRole: profile?.role
+      });
+
       const { error } = await supabase
         .from('events')
         .update({
@@ -84,16 +117,32 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
         })
         .eq('id', eventId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[ERROR] Failed to update event:", error);
+        throw error;
+      }
+
+      console.log("[SUCCESS] Event updated successfully");
 
       // Clear comment
       setComments(prev => ({ ...prev, [eventId]: '' }));
+      
+      // Show success toast
+      toast({
+        title: approve ? "Event Approved" : "Event Rejected",
+        description: `The event "${event.title}" has been ${approve ? 'approved' : 'rejected'}.`,
+      });
       
       // Trigger refresh
       onEventUpdated();
       
     } catch (error) {
-      console.error('Error updating event:', error);
+      console.error("[ERROR] Error updating event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update event status. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setActionLoading(null);
     }
@@ -135,6 +184,12 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
 
   const eventsToApprove = events.filter(event => canApprove(event));
 
+  console.log("[DEBUG] Events to approve:", {
+    totalEvents: events.length,
+    eventsToApprove: eventsToApprove.length,
+    userRole: profile?.role
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -148,6 +203,11 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
           <CardContent className="py-8 text-center">
             <Clock className="h-12 w-12 mx-auto text-gray-400 mb-3" />
             <p className="text-gray-600">No events pending your approval</p>
+            {events.length > 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                You have {events.length} event(s) assigned to you, but none require your current approval level.
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -177,6 +237,11 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
                     <span className="font-medium">Max Participants:</span> {event.max_participants}
                   </div>
                 )}
+                {event.venue_id && (
+                  <div>
+                    <span className="font-medium">Venue:</span> {event.venue_id}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-3">
@@ -195,7 +260,7 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
                     className="flex items-center gap-2"
                   >
                     <Check className="h-4 w-4" />
-                    Approve
+                    {actionLoading === event.id ? "Processing..." : "Approve"}
                   </Button>
                   <Button
                     variant="destructive"
@@ -204,7 +269,7 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
                     className="flex items-center gap-2"
                   >
                     <X className="h-4 w-4" />
-                    Reject
+                    {actionLoading === event.id ? "Processing..." : "Reject"}
                   </Button>
                 </div>
               </div>
