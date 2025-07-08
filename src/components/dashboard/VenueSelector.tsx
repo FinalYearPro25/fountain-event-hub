@@ -8,8 +8,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Users, XCircle } from "lucide-react";
+import { Calendar, MapPin, Users, XCircle, Lightbulb } from "lucide-react";
 
 export const VenueSelector = ({
   selectedDate,
@@ -21,6 +22,7 @@ export const VenueSelector = ({
   const [venues, setVenues] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState([]);
 
   const venueList = [
     {
@@ -143,12 +145,12 @@ export const VenueSelector = ({
           .select("*")
           .eq("is_active", true);
         if (!venuesData || venuesData.length === 0) {
-          setVenues(venueList); // fallback to mock data if DB is empty
+          setVenues(venueList);
         } else {
           setVenues(venuesData);
         }
       } catch (error) {
-        setVenues(venueList); // fallback to mock data on error
+        setVenues(venueList);
       } finally {
         setLoading(false);
       }
@@ -184,10 +186,56 @@ export const VenueSelector = ({
     );
   };
 
+  const generateSuggestions = (targetCapacity, unavailableVenueId) => {
+    const availableVenues = venues.filter(
+      (venue) => 
+        venue.id !== unavailableVenueId && 
+        isVenueAvailable(venue.id) &&
+        Math.abs(venue.capacity - targetCapacity) <= targetCapacity * 0.5 // Within 50% capacity range
+    );
+
+    // Sort by capacity similarity
+    return availableVenues
+      .sort((a, b) => Math.abs(a.capacity - targetCapacity) - Math.abs(b.capacity - targetCapacity))
+      .slice(0, 3); // Show top 3 suggestions
+  };
+
+  const handleUnavailableVenueClick = (venue) => {
+    const suggestedVenues = generateSuggestions(venue.capacity, venue.id);
+    setSuggestions(suggestedVenues);
+  };
+
   if (loading) return <div>Loading venues...</div>;
 
   return (
     <div className="space-y-4">
+      {suggestions.length > 0 && (
+        <Alert>
+          <Lightbulb className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Similar available venues:</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((venue) => (
+                  <Button
+                    key={venue.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onSelectVenue(venue.id);
+                      setSuggestions([]);
+                    }}
+                    className="text-xs"
+                  >
+                    {venue.name} (Cap: {venue.capacity})
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {venues.map((venue) => {
           const available = isVenueAvailable(venue.id);
@@ -238,7 +286,12 @@ export const VenueSelector = ({
                     disabled={!available}
                     onClick={(e) => {
                       e.preventDefault();
-                      if (available) onSelectVenue(venue.id);
+                      if (available) {
+                        onSelectVenue(venue.id);
+                        setSuggestions([]);
+                      } else {
+                        handleUnavailableVenueClick(venue);
+                      }
                     }}
                   >
                     {available ? (
@@ -256,7 +309,7 @@ export const VenueSelector = ({
                 </div>
                 {!available && (
                   <div className="text-xs text-red-600 mt-1">
-                    This venue is not available for the selected time.
+                    This venue is not available for the selected time. Click "Unavailable" to see similar venues.
                   </div>
                 )}
               </CardContent>

@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
+import { UserHeader } from "@/components/common/UserHeader";
 import {
   Card,
   CardContent,
@@ -66,9 +68,13 @@ export const ViewEvents = ({ onBack }: ViewEventsProps) => {
   const getStatusLabel = (status) => {
     switch (status) {
       case "draft":
-        return "Not Submitted";
+        return "Draft";
       case "pending_approval":
-        return "Pending Approval";
+        return "Pending Initial Approval";
+      case "pending_student_affairs":
+        return "Pending Student Affairs";
+      case "pending_vc":
+        return "Pending VC Approval";
       case "approved":
         return "Approved";
       case "rejected":
@@ -87,6 +93,8 @@ export const ViewEvents = ({ onBack }: ViewEventsProps) => {
       case "approved":
         return "bg-green-100 text-green-700";
       case "pending_approval":
+      case "pending_student_affairs":
+      case "pending_vc":
         return "bg-yellow-100 text-yellow-700";
       case "rejected":
         return "bg-red-100 text-red-700";
@@ -100,14 +108,18 @@ export const ViewEvents = ({ onBack }: ViewEventsProps) => {
   const getVenue = (venue_id) => venues.find((v) => v.id === venue_id);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50">
+      <UserHeader 
+        title="My Events" 
+        subtitle="View and manage your created events"
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">My Events</h1>
         </div>
 
         {loading ? (

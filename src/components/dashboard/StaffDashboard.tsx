@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,13 +5,9 @@ import { CreateEvent } from "./CreateEvent";
 import { ViewEvents } from "./ViewEvents";
 import { ViewVenues } from "./ViewVenues";
 import { BrowseEvents } from "./BrowseEvents";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ApprovalWorkflow } from "./ApprovalWorkflow";
+import { UserHeader } from "@/components/common/UserHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +49,7 @@ interface Stats {
 }
 
 export const StaffDashboard = () => {
-  const { user, profile, signOut } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showViewEvents, setShowViewEvents] = useState(false);
   const [showViewVenues, setShowViewVenues] = useState(false);
@@ -76,47 +71,43 @@ export const StaffDashboard = () => {
   const [showReports, setShowReports] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     setError("");
-    const fetchData = async () => {
-      try {
-        // Fetch events created by the staff
-        const { data: created, error: createdErr } = await supabase
-          .from("events")
-          .select("*")
-          .eq("organizer_id", user.id);
-        if (createdErr) throw createdErr;
-        setMyEvents(created || []);
+    try {
+      // Fetch events created by the staff
+      const { data: created, error: createdErr } = await supabase
+        .from("events")
+        .select("*")
+        .eq("organizer_id", user.id);
+      if (createdErr) throw createdErr;
+      setMyEvents(created || []);
 
-        // Fetch pending approvals (events with status 'pending_approval' in staff's department)
-        let department = profile?.department;
-        let pending: Event[] = [];
-        if (department) {
-          const { data: pendingData, error: pendingErr } = await supabase
-            .from("events")
-            .select("*")
-            .eq("status", "pending_approval")
-            .eq("organizer_id", user.id);
-          if (pendingErr) throw pendingErr;
-          pending = pendingData || [];
-        }
-        setPendingApprovals(pending);
+      // Fetch events assigned to this staff member for approval
+      const { data: assignedEvents, error: assignedErr } = await supabase
+        .from("events")
+        .select("*")
+        .eq("staff_assigned_to", user.id)
+        .in("status", ["pending_approval", "pending_student_affairs", "pending_vc"]);
+      if (assignedErr) throw assignedErr;
+      setPendingApprovals(assignedEvents || []);
 
-        // Stats
-        setStats({
-          myEvents: (created || []).length,
-          registrations: 0,
-          venues: (created || []).length,
-          pending: pending.length,
-        });
-      } catch (err) {
-        setError("Failed to load dashboard data.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Stats
+      setStats({
+        myEvents: (created || []).length,
+        registrations: 0,
+        venues: (created || []).length,
+        pending: (assignedEvents || []).length,
+      });
+    } catch (err) {
+      setError("Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [user, profile]);
 
@@ -129,7 +120,7 @@ export const StaffDashboard = () => {
   };
 
   if (showCreateEvent) {
-    return <CreateEvent onBack={() => setShowCreateEvent(false)} />;
+    return <CreateEvent onBack={() => setShowCreateEvent(false)} onSuccess={fetchData} />;
   }
   if (showViewEvents) {
     return <ViewEvents onBack={() => setShowViewEvents(false)} />;
@@ -142,36 +133,13 @@ export const StaffDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header with Role Confirmation */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">
-              Staff Dashboard
-            </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge
-                variant="outline"
-                className="flex items-center gap-1 px-3 py-1 border-emerald-200 text-emerald-700"
-              >
-                <UserCheck className="h-4 w-4" />
-                You are logged in as:{" "}
-                {getRoleDisplayName(profile?.role || "staff")}
-              </Badge>
-              <Badge variant="secondary" className="px-3 py-1 bg-green-100 text-green-800">
-                {profile?.full_name}
-              </Badge>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={signOut}
-            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-          >
-            Sign Out
-          </Button>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50">
+      <UserHeader 
+        title="Staff Dashboard" 
+        subtitle="Manage events and approvals"
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
@@ -243,6 +211,7 @@ export const StaffDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
@@ -302,6 +271,15 @@ export const StaffDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Approval Workflow */}
+            <div className="mb-8">
+              <ApprovalWorkflow 
+                events={pendingApprovals} 
+                onEventUpdated={fetchData}
+              />
+            </div>
+
             {/* Main Content Areas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-emerald-100 shadow-lg">
@@ -342,38 +320,19 @@ export const StaffDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+              
               <Card className="border-emerald-100 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">Pending Approvals</CardTitle>
+                  <CardTitle className="text-emerald-800">Recent Activity</CardTitle>
                   <CardDescription className="text-emerald-600">
-                    Events awaiting approval
+                    Latest updates and notifications
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    {pendingApprovals.length === 0 ? (
-                      <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
-                        No pending approvals.
-                      </div>
-                    ) : (
-                      pendingApprovals.map((event) => (
-                        <div
-                          key={event.id}
-                          className="flex items-center justify-between p-3 border-l-4 border-yellow-500 bg-yellow-50 rounded-r-lg"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900">{event.title}</p>
-                            <p className="text-sm text-gray-600">
-                              {event.start_date?.slice(0, 10)} •{" "}
-                              {event.venue_id} • {event.status}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="border-yellow-200 text-yellow-700">
-                            Pending
-                          </Badge>
-                        </div>
-                      ))
-                    )}
+                    <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
+                      No recent activity.
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -381,6 +340,7 @@ export const StaffDashboard = () => {
           </>
         )}
       </div>
+      
       <Dialog open={showReports} onOpenChange={setShowReports}>
         <DialogContent className="border-emerald-100">
           <DialogHeader>
@@ -392,6 +352,7 @@ export const StaffDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+      
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="border-emerald-100">
           <DialogHeader>
