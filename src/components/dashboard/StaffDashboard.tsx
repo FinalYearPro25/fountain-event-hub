@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,18 +37,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
 type EventStatus = Database["public"]["Enums"]["event_status"];
-
-interface Event {
-  id: string;
-  title: string;
-  start_date?: string;
-  venue_id?: string;
-  status?: EventStatus;
-  organizer_id?: string;
-  department?: string;
-  approver_role?: string; // Added approver_role
-  [key: string]: any;
-}
+type EventRecord = Database["public"]["Tables"]["events"]["Row"];
 
 interface Stats {
   myEvents: number;
@@ -64,9 +54,9 @@ export const StaffDashboard = () => {
   const [showBrowseEvents, setShowBrowseEvents] = useState(false);
 
   // Real data state
-  const [myEvents, setMyEvents] = useState<Event[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<Event[]>([]);
-  const [approvedEvents, setApprovedEvents] = useState<Event[]>([]);
+  const [myEvents, setMyEvents] = useState<EventRecord[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<EventRecord[]>([]);
+  const [approvedEvents, setApprovedEvents] = useState<EventRecord[]>([]);
   const [stats, setStats] = useState<Stats>({
     myEvents: 0,
     registrations: 0,
@@ -81,53 +71,54 @@ export const StaffDashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!user || !profile) return;
     setLoading(true);
     setError("");
-    async function fetchData() {
-      try {
-        // Fetch events created by the staff
-        const createdRes = await supabase
-          .from("events")
-          .select("*")
-          .eq("organizer_id", user.id);
-        if (createdRes.error) throw createdRes.error;
-        setMyEvents(createdRes.data || []);
+    try {
+      // Fetch events created by the staff
+      const createdRes = await supabase
+        .from("events")
+        .select("*")
+        .eq("organizer_id", user.id);
+      if (createdRes.error) throw createdRes.error;
+      setMyEvents(createdRes.data || []);
 
-        // Fetch all events pending staff approval (no department filter)
-        const pendingRes = await supabase
-          .from("events")
-          .select("*")
-          .eq("status", "pending_approval")
-          .eq("approver_role", "staff");
-        if (pendingRes.error) throw pendingRes.error;
-        // Debug log
-        console.log("[DEBUG] Pending staff approvals:", pendingRes.data);
-        setPendingApprovals(pendingRes.data || []);
+      // Fetch events assigned to this staff member for approval
+      const pendingRes = await supabase
+        .from("events")
+        .select("*")
+        .eq("staff_assigned_to", user.id)
+        .in("status", ["pending_approval"]);
+      if (pendingRes.error) throw pendingRes.error;
+      console.log("[DEBUG] Pending staff approvals for user:", user.id, pendingRes.data);
+      setPendingApprovals(pendingRes.data || []);
 
-        // Fetch all approved events
-        const approvedRes = await supabase
-          .from("events")
-          .select("*")
-          .eq("status", "approved")
-          .order("start_date", { ascending: true });
-        if (approvedRes.error) throw approvedRes.error;
-        setApprovedEvents(approvedRes.data || []);
+      // Fetch all approved events
+      const approvedRes = await supabase
+        .from("events")
+        .select("*")
+        .eq("status", "approved")
+        .order("start_date", { ascending: true });
+      if (approvedRes.error) throw approvedRes.error;
+      setApprovedEvents(approvedRes.data || []);
 
-        // Stats
-        setStats({
-          myEvents: (createdRes.data || []).length,
-          registrations: 0,
-          venues: (createdRes.data || []).length,
-          pending: (pendingRes.data || []).length,
-        });
-      } catch (err) {
-        setError("Failed to load dashboard data.");
-      } finally {
-        setLoading(false);
-      }
+      // Stats
+      setStats({
+        myEvents: (createdRes.data || []).length,
+        registrations: 0,
+        venues: (createdRes.data || []).length,
+        pending: (pendingRes.data || []).length,
+      });
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError("Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [user, profile]);
 
@@ -137,80 +128,6 @@ export const StaffDashboard = () => {
       event_coordinator: "EVENT COORDINATOR",
     };
     return roleMap[role] || role.toUpperCase();
-  };
-
-  // Approve or reject event
-  const handleApprove = async (eventId: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("events")
-        .update({ status: "approved" })
-        .eq("id", eventId);
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to approve event.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Event Approved",
-          description: "The event has been approved.",
-        });
-        // Refresh pending approvals
-        const pendingRes = await supabase
-          .from("events")
-          .select("*")
-          .eq("status", "pending_approval")
-          .eq("approver_role", "staff");
-        setPendingApprovals(pendingRes.data || []);
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to approve event.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  const handleReject = async (eventId: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("events")
-        .update({ status: "rejected" })
-        .eq("id", eventId);
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to reject event.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Event Rejected",
-          description: "The event has been rejected.",
-        });
-        // Refresh pending approvals
-        const pendingRes = await supabase
-          .from("events")
-          .select("*")
-          .eq("status", "pending_approval")
-          .eq("approver_role", "staff");
-        setPendingApprovals(pendingRes.data || []);
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to reject event.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
   };
 
   if (showCreateEvent) {
@@ -458,66 +375,6 @@ export const StaffDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-emerald-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">
-                    Pending Approvals
-                  </CardTitle>
-                  <CardDescription className="text-emerald-600">
-                    Latest updates and notifications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {pendingApprovals.length === 0 ? (
-                      <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
-                        No pending approvals.
-                      </div>
-                    ) : (
-                      pendingApprovals.map((event) => (
-                        <div
-                          key={event.id}
-                          className="flex items-center justify-between p-3 border-l-4 border-yellow-500 bg-yellow-50 rounded-r-lg"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {event.title}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {event.start_date?.slice(0, 10)} •{" "}
-                              {event.venue_id} • {event.status}
-                            </p>
-                          </div>
-                          <div className="flex gap-2 items-center">
-                            <Badge
-                              variant="outline"
-                              className="border-yellow-200 text-yellow-700"
-                            >
-                              Pending
-                            </Badge>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={() => handleApprove(event.id)}
-                              disabled={loading}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleReject(event.id)}
-                              disabled={loading}
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
               <Card className="border-emerald-100 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
                   <CardTitle className="text-emerald-800">
