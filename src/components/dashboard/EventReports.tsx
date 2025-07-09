@@ -31,7 +31,6 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
   const [filteredEvents, setFilteredEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("approved");
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const { toast } = useToast();
 
@@ -118,7 +117,7 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
         event.max_participants || '',
         event.registration_fee || '',
         event.description || '',
-        event.description || '' // Using description as purpose for now
+        event.description || ''
       ])
     ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
 
@@ -139,45 +138,44 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
   if (selectedEvent) {
     const venue = venues[selectedEvent.venue_id];
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center gap-4">
             <Button
               variant="outline"
               onClick={() => setSelectedEvent(null)}
-              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Reports
             </Button>
-            <h1 className="text-2xl font-bold text-emerald-800">Event Details Report</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Event Details Report</h1>
           </div>
 
-          <Card className="border-emerald-100">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-              <CardTitle className="text-2xl text-emerald-800">{selectedEvent.title}</CardTitle>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">{selectedEvent.title}</CardTitle>
               <Badge className="bg-green-100 text-green-700 w-fit">Approved Event</Badge>
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-6">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold text-emerald-800 mb-2 flex items-center gap-2">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
                       <Calendar className="h-5 w-5" />
                       Date & Time
                     </h3>
-                    <div className="bg-emerald-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 p-3 rounded">
                       <p><strong>Start:</strong> {new Date(selectedEvent.start_date).toLocaleString()}</p>
                       <p><strong>End:</strong> {new Date(selectedEvent.end_date).toLocaleString()}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-emerald-800 mb-2 flex items-center gap-2">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
                       <MapPin className="h-5 w-5" />
                       Venue & Location
                     </h3>
-                    <div className="bg-emerald-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 p-3 rounded">
                       <p><strong>Venue:</strong> {venue?.name || 'TBD'}</p>
                       {venue?.location_description && (
                         <p><strong>Location:</strong> {venue.location_description}</p>
@@ -189,11 +187,11 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-emerald-800 mb-2 flex items-center gap-2">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
                       <Users className="h-5 w-5" />
                       Participants
                     </h3>
-                    <div className="bg-emerald-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 p-3 rounded">
                       <p><strong>Max Participants:</strong> {selectedEvent.max_participants || 'Unlimited'}</p>
                       {selectedEvent.registration_fee && (
                         <p><strong>Registration Fee:</strong> ${selectedEvent.registration_fee}</p>
@@ -202,16 +200,16 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                   </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold text-emerald-800 mb-2 flex items-center gap-2">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
                       <FileText className="h-5 w-5" />
                       Event Details
                     </h3>
-                    <div className="bg-emerald-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 p-3 rounded">
                       <p><strong>Type:</strong> {selectedEvent.event_type}</p>
                       {selectedEvent.description && (
-                        <div className="mt-3">
+                        <div className="mt-2">
                           <strong>Description/Purpose:</strong>
                           <p className="mt-1 whitespace-pre-wrap">{selectedEvent.description}</p>
                         </div>
@@ -220,12 +218,12 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-emerald-800 mb-2">Approval Information</h3>
-                    <div className="bg-emerald-50 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-2">Approval Information</h3>
+                    <div className="bg-gray-50 p-3 rounded">
                       <p><strong>Status:</strong> Approved</p>
                       <p><strong>Created:</strong> {new Date(selectedEvent.created_at).toLocaleDateString()}</p>
                       {selectedEvent.approval_notes && (
-                        <div className="mt-3">
+                        <div className="mt-2">
                           <strong>Approval Notes:</strong>
                           <p className="mt-1">{selectedEvent.approval_notes}</p>
                         </div>
@@ -243,11 +241,11 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-            <p className="ml-3 text-emerald-600">Loading reports...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="ml-3 text-gray-600">Loading reports...</p>
           </div>
         </div>
       </div>
@@ -255,31 +253,30 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               onClick={onBack}
-              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-gray-900">
                 Approved Events Report
               </h1>
-              <p className="text-emerald-600 mt-1">
+              <p className="text-gray-600 mt-1">
                 Detailed reports of all approved events
               </p>
             </div>
           </div>
           <Button
             onClick={exportToCSV}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="bg-blue-600 hover:bg-blue-700"
           >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
@@ -287,9 +284,9 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
         </div>
 
         {/* Search Filter */}
-        <Card className="mb-6 border-emerald-100">
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-emerald-800 flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
               Search Events
             </CardTitle>
@@ -302,26 +299,25 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                 placeholder="Search approved events..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="border-emerald-200 focus:border-emerald-500"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="border-emerald-100">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <FileText className="h-8 w-8 text-emerald-600" />
+                <FileText className="h-8 w-8 text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Approved</p>
-                  <p className="text-2xl font-bold text-emerald-700">{events.length}</p>
+                  <p className="text-2xl font-bold text-blue-700">{events.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-emerald-100">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <Calendar className="h-8 w-8 text-green-600" />
@@ -339,13 +335,13 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-emerald-100">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <Users className="h-8 w-8 text-blue-600" />
+                <Users className="h-8 w-8 text-purple-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Capacity</p>
-                  <p className="text-2xl font-bold text-blue-700">
+                  <p className="text-2xl font-bold text-purple-700">
                     {events.reduce((sum, event) => sum + (event.max_participants || 0), 0)}
                   </p>
                 </div>
@@ -355,9 +351,9 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
         </div>
 
         {/* Events List */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {filteredEvents.length === 0 ? (
-            <Card className="border-emerald-100">
+            <Card>
               <CardContent className="py-12 text-center">
                 <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">No Approved Events Found</h3>
@@ -373,11 +369,11 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
             filteredEvents.map((event) => {
               const venue = venues[event.venue_id];
               return (
-                <Card key={event.id} className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
+                <Card key={event.id} className="shadow-sm hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-emerald-800 text-xl mb-2">{event.title}</CardTitle>
+                        <CardTitle className="text-xl mb-2">{event.title}</CardTitle>
                         {event.description && (
                           <p className="text-gray-600 mb-3 line-clamp-2">{event.description}</p>
                         )}
@@ -390,7 +386,7 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-emerald-600" />
+                        <Calendar className="h-4 w-4 text-blue-600" />
                         <div>
                           <p className="text-sm font-medium">Date & Time</p>
                           <p className="text-sm text-gray-600">
@@ -402,7 +398,7 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-emerald-600" />
+                        <MapPin className="h-4 w-4 text-red-600" />
                         <div>
                           <p className="text-sm font-medium">Location</p>
                           <p className="text-sm text-gray-600">{venue?.name || 'TBD'}</p>
@@ -412,7 +408,7 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-emerald-600" />
+                        <Users className="h-4 w-4 text-green-600" />
                         <div>
                           <p className="text-sm font-medium">Capacity</p>
                           <p className="text-sm text-gray-600">
@@ -427,7 +423,6 @@ export const EventReports = ({ onBack }: EventReportsProps) => {
                         onClick={() => setSelectedEvent(event)}
                         variant="outline"
                         size="sm"
-                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View Full Report
