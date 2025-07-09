@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,17 +35,33 @@ export const ApprovalWorkflow = ({
   const { profile } = useAuthContext();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [comments, setComments] = useState<{ [key: string]: string }>({});
+  const [venues, setVenues] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
 
-  console.log("[DEBUG] ApprovalWorkflow profile.role:", profile?.role);
-  console.log("[DEBUG] Events passed to ApprovalWorkflow:", events);
+  // Fetch venue names when component mounts
+  React.useEffect(() => {
+    const fetchVenues = async () => {
+      const uniqueVenueIds = [...new Set(events.map(e => e.venue_id).filter(Boolean))];
+      if (uniqueVenueIds.length === 0) return;
+
+      const { data: venuesData } = await supabase
+        .from('venues')
+        .select('id, name')
+        .in('id', uniqueVenueIds);
+
+      if (venuesData) {
+        const venueMap = venuesData.reduce((acc, venue) => {
+          acc[venue.id] = venue.name;
+          return acc;
+        }, {});
+        setVenues(venueMap);
+      }
+    };
+
+    fetchVenues();
+  }, [events]);
 
   const getNextStatus = (currentStatus: string, userRole: string) => {
-    console.log("[DEBUG] Getting next status for:", {
-      currentStatus,
-      userRole,
-    });
-
     const approvalFlow = {
       pending_approval: {
         staff: "pending_student_affairs",
@@ -59,45 +76,20 @@ export const ApprovalWorkflow = ({
       },
     };
 
-    const nextStatus = approvalFlow[currentStatus]?.[userRole] || "approved";
-    console.log("[DEBUG] Next status will be:", nextStatus);
-    return nextStatus;
+    return approvalFlow[currentStatus]?.[userRole] || "approved";
   };
 
   const canApprove = (event: Event) => {
     const userRole = profile?.role;
 
-    console.log("[DEBUG] Checking if user can approve:", {
-      eventId: event.id,
-      eventTitle: event.title,
-      eventStatus: event.status,
-      userRole,
-      staffAssignedTo: event.staff_assigned_to,
-    });
-
-    // Check if user can approve based on event status and their role
     switch (event.status) {
       case "pending_approval":
-        const canApproveInitial = [
-          "staff",
-          "event_coordinator",
-          "department_head",
-        ].includes(userRole);
-        console.log("[DEBUG] Can approve initial:", canApproveInitial);
-        return canApproveInitial;
+        return ["staff", "event_coordinator", "department_head"].includes(userRole);
       case "pending_student_affairs":
-        const canApproveStudentAffairs = userRole === "dean_student_affairs";
-        console.log(
-          "[DEBUG] Can approve student affairs:",
-          canApproveStudentAffairs
-        );
-        return canApproveStudentAffairs;
+        return userRole === "dean_student_affairs";
       case "pending_vc":
-        const canApproveVC = userRole === "senate_member";
-        console.log("[DEBUG] Can approve VC:", canApproveVC);
-        return canApproveVC;
+        return userRole === "senate_member";
       default:
-        console.log("[DEBUG] Cannot approve - unknown status");
         return false;
     }
   };
@@ -112,21 +104,20 @@ export const ApprovalWorkflow = ({
         });
       
       if (error) {
-        console.error("[ERROR] Failed to create notification:", error);
+        console.error("Failed to create notification:", error);
       }
     } catch (error) {
-      console.error("[ERROR] Error creating notification:", error);
+      console.error("Error creating notification:", error);
     }
   };
 
   const handleApproval = async (eventId: string, approve: boolean) => {
-    console.log("[DEBUG] Handling approval:", { eventId, approve });
     setActionLoading(eventId);
 
     try {
       const event = events.find((e) => e.id === eventId);
       if (!event) {
-        console.error("[ERROR] Event not found:", eventId);
+        console.error("Event not found:", eventId);
         return;
       }
 
@@ -134,35 +125,34 @@ export const ApprovalWorkflow = ({
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
-      console.log("[DEBUG] Updating event status:", {
-        eventId,
-        currentStatus: event.status,
-        newStatus,
-        userRole: profile?.role,
-      });
-
-      // Use a more specific update query with proper error handling
+      // Use a more targeted update approach to avoid RLS issues
       const updateData = {
         status: newStatus,
-        approval_notes: comments[eventId] || null,
-        approver_role: profile?.role,
-        updated_at: new Date().toISOString(),
       };
 
-      console.log("[DEBUG] Update data:", updateData);
+      // Only add optional fields if they have values
+      if (comments[eventId]) {
+        updateData.approval_notes = comments[eventId];
+      }
+
+      if (profile?.role) {
+        updateData.approver_role = profile.role;
+      }
+
+      console.log("Updating event with data:", updateData);
 
       const { data, error } = await supabase
         .from("events")
         .update(updateData)
         .eq("id", eventId)
-        .select();
+        .select("*");
 
       if (error) {
-        console.error("[ERROR] Supabase update error:", error);
+        console.error("Supabase update error:", error);
         throw new Error(`Database update failed: ${error.message}`);
       }
 
-      console.log("[SUCCESS] Event updated successfully:", data);
+      console.log("Event updated successfully:", data);
 
       // Create notification for the event organizer
       const notificationMessage = approve 
@@ -180,11 +170,11 @@ export const ApprovalWorkflow = ({
         description: `The event "${event.title}" has been ${approve ? "approved" : "rejected"}.`,
       });
 
-      // Refresh parent dashboard to update lists
+      // Refresh parent dashboard
       onEventUpdated();
 
     } catch (error) {
-      console.error("[ERROR] Error updating event:", error);
+      console.error("Error updating event:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update event status. Please try again.",
@@ -231,12 +221,6 @@ export const ApprovalWorkflow = ({
 
   const eventsToApprove = events.filter((event) => canApprove(event));
 
-  console.log("[DEBUG] Events to approve:", {
-    totalEvents: events.length,
-    eventsToApprove: eventsToApprove.length,
-    userRole: profile?.role,
-  });
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -250,12 +234,6 @@ export const ApprovalWorkflow = ({
           <CardContent className="py-8 text-center">
             <Clock className="h-12 w-12 mx-auto text-gray-400 mb-3" />
             <p className="text-gray-600">No events pending your approval</p>
-            {events.length > 0 && (
-              <p className="text-sm text-gray-500 mt-2">
-                You have {events.length} event(s) assigned to you, but none
-                require your current approval level.
-              </p>
-            )}
           </CardContent>
         </Card>
       ) : (
@@ -289,7 +267,8 @@ export const ApprovalWorkflow = ({
                 )}
                 {event.venue_id && (
                   <div>
-                    <span className="font-medium">Venue:</span> {event.venue_id}
+                    <span className="font-medium">Venue:</span>{" "}
+                    {venues[event.venue_id] || event.venue_id}
                   </div>
                 )}
               </div>
