@@ -9,7 +9,6 @@ import { BrowseEvents } from "./BrowseEvents";
 import { ApprovalWorkflow } from "./ApprovalWorkflow";
 import { EventReports } from "./EventReports";
 import { EventSettings } from "./EventSettings";
-import { UserHeader } from "@/components/common/UserHeader";
 import {
   Card,
   CardContent,
@@ -32,7 +31,6 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
-type EventStatus = Database["public"]["Enums"]["event_status"];
 type EventRecord = Database["public"]["Tables"]["events"]["Row"];
 
 interface Stats {
@@ -55,6 +53,7 @@ export const StaffDashboard = () => {
   const [myEvents, setMyEvents] = useState<EventRecord[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<EventRecord[]>([]);
   const [approvedEvents, setApprovedEvents] = useState<EventRecord[]>([]);
+  const [venues, setVenues] = useState<{ [key: string]: string }>({});
   const [stats, setStats] = useState<Stats>({
     myEvents: 0,
     registrations: 0,
@@ -64,10 +63,6 @@ export const StaffDashboard = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const { toast } = useToast();
-
-  // Add state for viewing report details
-  const [selectedReportEvent, setSelectedReportEvent] =
-    useState<EventRecord | null>(null);
 
   const fetchData = async () => {
     if (!user || !profile) return;
@@ -84,36 +79,26 @@ export const StaffDashboard = () => {
         .eq("organizer_id", user.id);
 
       if (createdRes.error) {
-        console.error(
-          "[ERROR] Failed to fetch created events:",
-          createdRes.error
-        );
+        console.error("[ERROR] Failed to fetch created events:", createdRes.error);
         throw createdRes.error;
       }
 
       console.log("[DEBUG] Created events:", createdRes.data);
       setMyEvents(createdRes.data || []);
 
-      // Fetch events assigned to this staff member for approval with all relevant statuses
+      // Fetch events for staff approval
       const pendingRes = await supabase
         .from("events")
         .select("*")
-        .eq("status", "pending_approval")
-        .eq("approver_role", "staff");
+        .in("status", ["pending_approval"])
+        .or(`staff_assigned_to.eq.${user.id},approver_role.eq.staff`);
 
       if (pendingRes.error) {
-        console.error(
-          "[ERROR] Failed to fetch pending approvals:",
-          pendingRes.error
-        );
+        console.error("[ERROR] Failed to fetch pending approvals:", pendingRes.error);
         throw pendingRes.error;
       }
 
-      console.log(
-        "[DEBUG] Pending staff approvals for user:",
-        user.id,
-        pendingRes.data
-      );
+      console.log("[DEBUG] Pending staff approvals:", pendingRes.data);
       setPendingApprovals(pendingRes.data || []);
 
       // Fetch all approved events
@@ -124,15 +109,31 @@ export const StaffDashboard = () => {
         .order("start_date", { ascending: true });
 
       if (approvedRes.error) {
-        console.error(
-          "[ERROR] Failed to fetch approved events:",
-          approvedRes.error
-        );
+        console.error("[ERROR] Failed to fetch approved events:", approvedRes.error);
         throw approvedRes.error;
       }
 
       console.log("[DEBUG] Approved events:", approvedRes.data);
       setApprovedEvents(approvedRes.data || []);
+
+      // Fetch venues for display
+      const allEvents = [...(createdRes.data || []), ...(pendingRes.data || []), ...(approvedRes.data || [])];
+      const uniqueVenueIds = [...new Set(allEvents.map(e => e.venue_id).filter(Boolean))];
+      
+      if (uniqueVenueIds.length > 0) {
+        const { data: venuesData } = await supabase
+          .from('venues')
+          .select('id, name')
+          .in('id', uniqueVenueIds);
+
+        if (venuesData) {
+          const venueMap = venuesData.reduce((acc, venue) => {
+            acc[venue.id] = venue.name;
+            return acc;
+          }, {} as { [key: string]: string });
+          setVenues(venueMap);
+        }
+      }
 
       // Calculate stats
       const myEventsCount = (createdRes.data || []).length;
@@ -200,44 +201,31 @@ export const StaffDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header with Role Confirmation */}
+        {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">
-              Staff Dashboard
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Staff Dashboard</h1>
             <div className="flex items-center gap-2 mt-2">
-              <Badge
-                variant="outline"
-                className="flex items-center gap-1 px-3 py-1 border-emerald-200 text-emerald-700"
-              >
+              <Badge variant="outline" className="flex items-center gap-1 px-3 py-1">
                 <UserCheck className="h-4 w-4" />
-                You are logged in as:{" "}
-                {getRoleDisplayName(profile?.role || "staff")}
+                You are logged in as: {getRoleDisplayName(profile?.role || "staff")}
               </Badge>
-              <Badge
-                variant="secondary"
-                className="px-3 py-1 bg-green-100 text-green-800"
-              >
+              <Badge variant="secondary" className="px-3 py-1">
                 {profile?.full_name}
               </Badge>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={signOut}
-            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-          >
+          <Button variant="outline" onClick={signOut}>
             Sign Out
           </Button>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-            <p className="ml-3 text-emerald-600">Loading dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <p className="ml-3 text-green-600">Loading dashboard...</p>
           </div>
         ) : error ? (
           <div className="text-red-500 text-center py-8 bg-red-50 rounded-lg">
@@ -251,126 +239,106 @@ export const StaffDashboard = () => {
         ) : (
           <>
             {/* Quick Actions */}
-            <div className="mb-8">
-              <Card className="border-emerald-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">
-                    Quick Actions
-                  </CardTitle>
-                  <CardDescription className="text-emerald-600">
-                    Get started with common tasks
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="flex flex-wrap gap-4">
-                    <Button
-                      onClick={() => setShowCreateEvent(true)}
-                      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Create New Event
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowViewEvents(true)}
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View My Events
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowViewVenues(true)}
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Check Venue Availability
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowBrowseEvents(true)}
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Browse All Events
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowReports(true)}
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      View Reports
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowSettings(true)}
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Event Settings
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="mb-8">
+              <CardHeader className="bg-green-50">
+                <CardTitle className="text-green-800">Quick Actions</CardTitle>
+                <CardDescription className="text-green-600">
+                  Get started with common tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="flex flex-wrap gap-4">
+                  <Button
+                    onClick={() => setShowCreateEvent(true)}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create New Event
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowViewEvents(true)}
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View My Events
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowViewVenues(true)}
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Check Venue Availability
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBrowseEvents(true)}
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Browse All Events
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowReports(true)}
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Reports
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSettings(true)}
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Event Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
+              <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">
-                    My Events
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-green-800">My Events</CardTitle>
+                  <Calendar className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">
-                    {stats.myEvents}
-                  </div>
-                  <p className="text-xs text-emerald-600">Events organized</p>
+                  <div className="text-2xl font-bold text-green-700">{stats.myEvents}</div>
+                  <p className="text-xs text-green-600">Events organized</p>
                 </CardContent>
               </Card>
-              <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
+              <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">
-                    Total Registrations
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-green-800">Total Registrations</CardTitle>
+                  <Users className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">
-                    {stats.registrations}
-                  </div>
-                  <p className="text-xs text-emerald-600">Across all events</p>
+                  <div className="text-2xl font-bold text-green-700">{stats.registrations}</div>
+                  <p className="text-xs text-green-600">Across all events</p>
                 </CardContent>
               </Card>
-              <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
+              <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">
-                    Venues Booked
-                  </CardTitle>
-                  <MapPin className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-green-800">Venues Booked</CardTitle>
+                  <MapPin className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">
-                    {stats.venues}
-                  </div>
-                  <p className="text-xs text-emerald-600">This month</p>
+                  <div className="text-2xl font-bold text-green-700">{stats.venues}</div>
+                  <p className="text-xs text-green-600">This month</p>
                 </CardContent>
               </Card>
-              <Card className="border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
+              <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">
-                    Pending Approvals
-                  </CardTitle>
-                  <FileText className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-green-800">Pending Approvals</CardTitle>
+                  <FileText className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-700">
-                    {stats.pending}
-                  </div>
-                  <p className="text-xs text-emerald-600">Awaiting review</p>
+                  <div className="text-2xl font-bold text-green-700">{stats.pending}</div>
+                  <p className="text-xs text-green-600">Awaiting review</p>
                 </CardContent>
               </Card>
             </div>
@@ -386,12 +354,10 @@ export const StaffDashboard = () => {
             {/* Main Content Areas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <Card className="border-emerald-100 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                    <CardTitle className="text-emerald-800">
-                      My Events & Status
-                    </CardTitle>
-                    <CardDescription className="text-emerald-600">
+                <Card className="shadow-lg">
+                  <CardHeader className="bg-green-50">
+                    <CardTitle className="text-green-800">My Events & Status</CardTitle>
+                    <CardDescription className="text-green-600">
                       Track your event approvals and status
                     </CardDescription>
                   </CardHeader>
@@ -405,21 +371,15 @@ export const StaffDashboard = () => {
                         myEvents.map((event) => (
                           <div
                             key={event.id}
-                            className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
+                            className="flex items-center justify-between p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg"
                           >
                             <div>
-                              <p className="font-medium text-gray-900">
-                                {event.title}
-                              </p>
+                              <p className="font-medium text-gray-900">{event.title}</p>
                               <p className="text-sm text-gray-600">
-                                {event.start_date?.slice(0, 10)} •{" "}
-                                {event.venue_id} • {event.status}
+                                {event.start_date?.slice(0, 10)} • {venues[event.venue_id] || 'TBD'} • {event.status}
                               </p>
                             </div>
-                            <Badge
-                              variant="outline"
-                              className="border-emerald-200 text-emerald-700"
-                            >
+                            <Badge variant="outline" className="border-green-200 text-green-700">
                               {event.status}
                             </Badge>
                           </div>
@@ -431,12 +391,10 @@ export const StaffDashboard = () => {
               </div>
 
               <div className="space-y-6">
-                <Card className="border-emerald-100 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                    <CardTitle className="text-emerald-800">
-                      Upcoming Approved Events
-                    </CardTitle>
-                    <CardDescription className="text-emerald-600">
+                <Card className="shadow-lg">
+                  <CardHeader className="bg-green-50">
+                    <CardTitle className="text-green-800">Upcoming Approved Events</CardTitle>
+                    <CardDescription className="text-green-600">
                       All approved events happening soon
                     </CardDescription>
                   </CardHeader>
@@ -450,32 +408,18 @@ export const StaffDashboard = () => {
                         approvedEvents.slice(0, 5).map((event) => (
                           <div
                             key={event.id}
-                            className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
+                            className="flex items-center justify-between p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg"
                           >
                             <div>
-                              <p className="font-medium text-gray-900">
-                                {event.title}
-                              </p>
+                              <p className="font-medium text-gray-900">{event.title}</p>
                               <p className="text-sm text-gray-600">
-                                {event.start_date?.slice(0, 10)} •{" "}
-                                {event.venue_id}
+                                {event.start_date?.slice(0, 10)} • {venues[event.venue_id] || 'TBD'}
                               </p>
                             </div>
                             <div className="flex gap-2">
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-200 text-emerald-700 bg-emerald-50"
-                              >
+                              <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
                                 Approved
                               </Badge>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setSelectedReportEvent(event)}
-                                className="text-xs"
-                              >
-                                View Report
-                              </Button>
                             </div>
                           </div>
                         ))

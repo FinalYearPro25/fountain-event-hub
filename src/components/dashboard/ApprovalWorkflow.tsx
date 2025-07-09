@@ -128,7 +128,6 @@ export const ApprovalWorkflow = ({
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
-      // Create properly typed update object
       const updateData: {
         status: EventStatus;
         approval_notes?: string;
@@ -137,7 +136,6 @@ export const ApprovalWorkflow = ({
         status: newStatus,
       };
 
-      // Only add optional fields if they have values
       if (comments[eventId]) {
         updateData.approval_notes = comments[eventId];
       }
