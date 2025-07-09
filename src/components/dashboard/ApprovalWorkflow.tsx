@@ -141,32 +141,29 @@ export const ApprovalWorkflow = ({
         userRole: profile?.role,
       });
 
-      const { error } = await supabase
+      // Use a more specific update query with proper error handling
+      const updateData = {
+        status: newStatus,
+        approval_notes: comments[eventId] || null,
+        approver_role: profile?.role,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log("[DEBUG] Update data:", updateData);
+
+      const { data, error } = await supabase
         .from("events")
-        .update({
-          status: newStatus,
-          approval_notes: comments[eventId] || null,
-          approver_role: profile?.role,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", eventId);
+        .update(updateData)
+        .eq("id", eventId)
+        .select();
 
       if (error) {
-        console.error("[ERROR] Failed to update event:", error);
-        throw error;
+        console.error("[ERROR] Supabase update error:", error);
+        throw new Error(`Database update failed: ${error.message}`);
       }
 
-      console.log("[SUCCESS] Event updated successfully");
+      console.log("[SUCCESS] Event updated successfully:", data);
 
-<<<<<<< HEAD
-      // Send notification to organizer
-      await supabase.from("notifications").insert({
-        user_id: event.organizer_id,
-        message: `Your event '${event.title}' has been ${approve ? "approved" : "rejected"}.`,
-        read: false,
-      });
-
-=======
       // Create notification for the event organizer
       const notificationMessage = approve 
         ? `Your event "${event.title}" has been ${newStatus === 'approved' ? 'approved' : 'moved to the next approval stage'}.`
@@ -177,23 +174,20 @@ export const ApprovalWorkflow = ({
       // Clear comment
       setComments(prev => ({ ...prev, [eventId]: '' }));
       
->>>>>>> 2de321415620de896fe27ae9b428aab38de1776e
       // Show success toast
       toast({
         title: approve ? "Event Approved" : "Event Rejected",
-        description: `The event \"${event.title}\" has been ${approve ? "approved" : "rejected"}.`,
+        description: `The event "${event.title}" has been ${approve ? "approved" : "rejected"}.`,
       });
 
       // Refresh parent dashboard to update lists
       onEventUpdated();
 
-      // Clear comment
-      setComments((prev) => ({ ...prev, [eventId]: "" }));
     } catch (error) {
       console.error("[ERROR] Error updating event:", error);
       toast({
         title: "Error",
-        description: "Failed to update event status. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update event status. Please try again.",
         variant: "destructive",
       });
     } finally {
