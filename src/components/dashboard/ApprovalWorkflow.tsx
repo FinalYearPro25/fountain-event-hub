@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Check, X, Clock, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type EventStatus = Database["public"]["Enums"]["event_status"];
 
 interface Event {
   id: string;
@@ -61,18 +63,18 @@ export const ApprovalWorkflow = ({
     fetchVenues();
   }, [events]);
 
-  const getNextStatus = (currentStatus: string, userRole: string) => {
+  const getNextStatus = (currentStatus: string, userRole: string): EventStatus => {
     const approvalFlow = {
       pending_approval: {
-        staff: "pending_student_affairs",
-        event_coordinator: "pending_student_affairs",
-        department_head: "pending_student_affairs",
+        staff: "pending_student_affairs" as EventStatus,
+        event_coordinator: "pending_student_affairs" as EventStatus,
+        department_head: "pending_student_affairs" as EventStatus,
       },
       pending_student_affairs: {
-        dean_student_affairs: "pending_vc",
+        dean_student_affairs: "pending_vc" as EventStatus,
       },
       pending_vc: {
-        senate_member: "approved",
+        senate_member: "approved" as EventStatus,
       },
     } as const;
 
@@ -121,13 +123,13 @@ export const ApprovalWorkflow = ({
         return;
       }
 
-      let newStatus = approve
+      const newStatus: EventStatus = approve
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
       // Create properly typed update object
       const updateData: {
-        status: string;
+        status: EventStatus;
         approval_notes?: string;
         approver_role?: string;
       } = {
