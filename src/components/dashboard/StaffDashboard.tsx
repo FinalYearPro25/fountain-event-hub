@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +46,7 @@ interface Stats {
 }
 
 export const StaffDashboard = () => {
-  const { user, profile } = useAuthContext();
+  const { user, profile, signOut } = useAuthContext();
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showViewEvents, setShowViewEvents] = useState(false);
   const [showViewVenues, setShowViewVenues] = useState(false);
@@ -71,6 +70,10 @@ export const StaffDashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
 
+  // Add state for viewing report details
+  const [selectedReportEvent, setSelectedReportEvent] =
+    useState<EventRecord | null>(null);
+
   const fetchData = async () => {
     if (!user || !profile) return;
     setLoading(true);
@@ -84,12 +87,15 @@ export const StaffDashboard = () => {
         .from("events")
         .select("*")
         .eq("organizer_id", user.id);
-      
+
       if (createdRes.error) {
-        console.error("[ERROR] Failed to fetch created events:", createdRes.error);
+        console.error(
+          "[ERROR] Failed to fetch created events:",
+          createdRes.error
+        );
         throw createdRes.error;
       }
-      
+
       console.log("[DEBUG] Created events:", createdRes.data);
       setMyEvents(createdRes.data || []);
 
@@ -97,15 +103,22 @@ export const StaffDashboard = () => {
       const pendingRes = await supabase
         .from("events")
         .select("*")
-        .eq("staff_assigned_to", user.id)
-        .in("status", ["pending_approval", "pending_student_affairs", "pending_vc"]);
-      
+        .eq("status", "pending_approval")
+        .eq("approver_role", "staff");
+
       if (pendingRes.error) {
-        console.error("[ERROR] Failed to fetch pending approvals:", pendingRes.error);
+        console.error(
+          "[ERROR] Failed to fetch pending approvals:",
+          pendingRes.error
+        );
         throw pendingRes.error;
       }
-      
-      console.log("[DEBUG] Pending staff approvals for user:", user.id, pendingRes.data);
+
+      console.log(
+        "[DEBUG] Pending staff approvals for user:",
+        user.id,
+        pendingRes.data
+      );
       setPendingApprovals(pendingRes.data || []);
 
       // Fetch all approved events
@@ -114,19 +127,22 @@ export const StaffDashboard = () => {
         .select("*")
         .eq("status", "approved")
         .order("start_date", { ascending: true });
-      
+
       if (approvedRes.error) {
-        console.error("[ERROR] Failed to fetch approved events:", approvedRes.error);
+        console.error(
+          "[ERROR] Failed to fetch approved events:",
+          approvedRes.error
+        );
         throw approvedRes.error;
       }
-      
+
       console.log("[DEBUG] Approved events:", approvedRes.data);
       setApprovedEvents(approvedRes.data || []);
 
       // Calculate stats
       const myEventsCount = (createdRes.data || []).length;
       const pendingCount = (pendingRes.data || []).length;
-      
+
       setStats({
         myEvents: myEventsCount,
         registrations: 0, // TODO: Fetch actual registrations count
@@ -138,7 +154,6 @@ export const StaffDashboard = () => {
         myEvents: myEventsCount,
         pending: pendingCount,
       });
-
     } catch (err) {
       console.error("[ERROR] Error fetching dashboard data:", err);
       setError("Failed to load dashboard data.");
@@ -210,9 +225,7 @@ export const StaffDashboard = () => {
           </div>
           <Button
             variant="outline"
-            onClick={() => {
-              // Sign out functionality would go here
-            }}
+            onClick={signOut}
             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
           >
             Sign Out
@@ -360,25 +373,6 @@ export const StaffDashboard = () => {
               </Card>
             </div>
 
-            {/* Debug Information */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-8">
-                <Card className="border-yellow-200 bg-yellow-50">
-                  <CardHeader>
-                    <CardTitle className="text-yellow-800 text-sm">
-                      Debug Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-yellow-700">
-                    <p>User ID: {user?.id}</p>
-                    <p>Role: {profile?.role}</p>
-                    <p>Pending Approvals: {pendingApprovals.length}</p>
-                    <p>Events assigned to me: {pendingApprovals.map(e => e.title).join(", ") || "None"}</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
             {/* Approval Workflow */}
             <div className="mb-8">
               <ApprovalWorkflow
@@ -462,12 +456,20 @@ export const StaffDashboard = () => {
                               {event.venue_id}
                             </p>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-200 text-emerald-700 bg-emerald-50"
-                          >
-                            Approved
-                          </Badge>
+                          <div className="flex gap-2">
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-200 text-emerald-700 bg-emerald-50"
+                            >
+                              Approved
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              onClick={() => setSelectedReportEvent(event)}
+                            >
+                              View Report
+                            </Button>
+                          </div>
                         </div>
                       ))
                     )}
@@ -502,6 +504,53 @@ export const StaffDashboard = () => {
             Event settings feature coming soon! Here you will be able to
             configure event-related preferences.
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add a Dialog/modal to show full event details when selectedReportEvent is set */}
+      <Dialog
+        open={!!selectedReportEvent}
+        onOpenChange={() => setSelectedReportEvent(null)}
+      >
+        <DialogContent className="border-emerald-100">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-800">Event Report</DialogTitle>
+          </DialogHeader>
+          {selectedReportEvent && (
+            <div className="text-gray-700 space-y-2">
+              <div>
+                <strong>Title:</strong> {selectedReportEvent.title}
+              </div>
+              <div>
+                <strong>Description:</strong> {selectedReportEvent.description}
+              </div>
+              <div>
+                <strong>Date:</strong>{" "}
+                {selectedReportEvent.start_date?.slice(0, 10)}
+              </div>
+              <div>
+                <strong>Time:</strong>{" "}
+                {selectedReportEvent.start_date?.slice(11, 16)} -{" "}
+                {selectedReportEvent.end_date?.slice(11, 16)}
+              </div>
+              <div>
+                <strong>Venue:</strong> {selectedReportEvent.venue_id}
+              </div>
+              <div>
+                <strong>Type:</strong> {selectedReportEvent.event_type}
+              </div>
+              <div>
+                <strong>Max Participants:</strong>{" "}
+                {selectedReportEvent.max_participants}
+              </div>
+              <div>
+                <strong>Purpose:</strong> {selectedReportEvent.description}
+              </div>
+              <div>
+                <strong>Status:</strong> {selectedReportEvent.status}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,4 +1,3 @@
-
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { Navigate } from "react-router-dom";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
@@ -12,10 +11,10 @@ import { SuperAdminDashboard } from "@/components/dashboard/SuperAdminDashboard"
 export default function Dashboard() {
   const { user, profile, loading } = useAuthContext();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading || !profile) return <div>Loading...</div>;
   if (!user) return <Navigate to="/" />;
 
-  const userRole = profile?.role;
+  const userRole = profile.role;
 
   // Super Admin
   if (userRole === "super_admin") {

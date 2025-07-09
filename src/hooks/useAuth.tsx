@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,6 +110,7 @@ export const useAuth = () => {
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
+      window.location.href = "/"; // Force redirect to home after sign out
     } catch (error) {
       console.error("Error signing out:", error);
     } finally {
