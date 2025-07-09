@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +29,12 @@ import {
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type EventRecord = Database["public"]["Tables"]["events"]["Row"];
 
@@ -79,7 +84,10 @@ export const StaffDashboard = () => {
         .eq("organizer_id", user.id);
 
       if (createdRes.error) {
-        console.error("[ERROR] Failed to fetch created events:", createdRes.error);
+        console.error(
+          "[ERROR] Failed to fetch created events:",
+          createdRes.error
+        );
         throw createdRes.error;
       }
 
@@ -94,7 +102,10 @@ export const StaffDashboard = () => {
         .or(`staff_assigned_to.eq.${user.id},approver_role.eq.staff`);
 
       if (pendingRes.error) {
-        console.error("[ERROR] Failed to fetch pending approvals:", pendingRes.error);
+        console.error(
+          "[ERROR] Failed to fetch pending approvals:",
+          pendingRes.error
+        );
         throw pendingRes.error;
       }
 
@@ -109,7 +120,10 @@ export const StaffDashboard = () => {
         .order("start_date", { ascending: true });
 
       if (approvedRes.error) {
-        console.error("[ERROR] Failed to fetch approved events:", approvedRes.error);
+        console.error(
+          "[ERROR] Failed to fetch approved events:",
+          approvedRes.error
+        );
         throw approvedRes.error;
       }
 
@@ -117,20 +131,29 @@ export const StaffDashboard = () => {
       setApprovedEvents(approvedRes.data || []);
 
       // Fetch venues for display
-      const allEvents = [...(createdRes.data || []), ...(pendingRes.data || []), ...(approvedRes.data || [])];
-      const uniqueVenueIds = [...new Set(allEvents.map(e => e.venue_id).filter(Boolean))];
-      
+      const allEvents = [
+        ...(createdRes.data || []),
+        ...(pendingRes.data || []),
+        ...(approvedRes.data || []),
+      ];
+      const uniqueVenueIds = [
+        ...new Set(allEvents.map((e) => e.venue_id).filter(Boolean)),
+      ];
+
       if (uniqueVenueIds.length > 0) {
         const { data: venuesData } = await supabase
-          .from('venues')
-          .select('id, name')
-          .in('id', uniqueVenueIds);
+          .from("venues")
+          .select("id, name")
+          .in("id", uniqueVenueIds);
 
         if (venuesData) {
-          const venueMap = venuesData.reduce((acc, venue) => {
-            acc[venue.id] = venue.name;
-            return acc;
-          }, {} as { [key: string]: string });
+          const venueMap = venuesData.reduce(
+            (acc, venue) => {
+              acc[venue.id] = venue.name;
+              return acc;
+            },
+            {} as { [key: string]: string }
+          );
           setVenues(venueMap);
         }
       }
@@ -206,11 +229,17 @@ export const StaffDashboard = () => {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Staff Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Staff Dashboard
+            </h1>
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="flex items-center gap-1 px-3 py-1">
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 px-3 py-1"
+              >
                 <UserCheck className="h-4 w-4" />
-                You are logged in as: {getRoleDisplayName(profile?.role || "staff")}
+                You are logged in as:{" "}
+                {getRoleDisplayName(profile?.role || "staff")}
               </Badge>
               <Badge variant="secondary" className="px-3 py-1">
                 {profile?.full_name}
@@ -303,41 +332,57 @@ export const StaffDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">My Events</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    My Events
+                  </CardTitle>
                   <Calendar className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-700">{stats.myEvents}</div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {stats.myEvents}
+                  </div>
                   <p className="text-xs text-green-600">Events organized</p>
                 </CardContent>
               </Card>
               <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Total Registrations</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    Total Registrations
+                  </CardTitle>
                   <Users className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-700">{stats.registrations}</div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {stats.registrations}
+                  </div>
                   <p className="text-xs text-green-600">Across all events</p>
                 </CardContent>
               </Card>
               <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Venues Booked</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    Venues Booked
+                  </CardTitle>
                   <MapPin className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-700">{stats.venues}</div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {stats.venues}
+                  </div>
                   <p className="text-xs text-green-600">This month</p>
                 </CardContent>
               </Card>
               <Card className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Pending Approvals</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-800">
+                    Pending Approvals
+                  </CardTitle>
                   <FileText className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-700">{stats.pending}</div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {stats.pending}
+                  </div>
                   <p className="text-xs text-green-600">Awaiting review</p>
                 </CardContent>
               </Card>
@@ -356,7 +401,9 @@ export const StaffDashboard = () => {
               <div className="space-y-6">
                 <Card className="shadow-lg">
                   <CardHeader className="bg-green-50">
-                    <CardTitle className="text-green-800">My Events & Status</CardTitle>
+                    <CardTitle className="text-green-800">
+                      My Events & Status
+                    </CardTitle>
                     <CardDescription className="text-green-600">
                       Track your event approvals and status
                     </CardDescription>
@@ -374,12 +421,19 @@ export const StaffDashboard = () => {
                             className="flex items-center justify-between p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg"
                           >
                             <div>
-                              <p className="font-medium text-gray-900">{event.title}</p>
+                              <p className="font-medium text-gray-900">
+                                {event.title}
+                              </p>
                               <p className="text-sm text-gray-600">
-                                {event.start_date?.slice(0, 10)} • {venues[event.venue_id] || 'TBD'} • {event.status}
+                                {event.start_date?.slice(0, 10)} •{" "}
+                                {venues[event.venue_id] || "TBD"} •{" "}
+                                {event.status}
                               </p>
                             </div>
-                            <Badge variant="outline" className="border-green-200 text-green-700">
+                            <Badge
+                              variant="outline"
+                              className="border-green-200 text-green-700"
+                            >
                               {event.status}
                             </Badge>
                           </div>
@@ -393,7 +447,9 @@ export const StaffDashboard = () => {
               <div className="space-y-6">
                 <Card className="shadow-lg">
                   <CardHeader className="bg-green-50">
-                    <CardTitle className="text-green-800">Upcoming Approved Events</CardTitle>
+                    <CardTitle className="text-green-800">
+                      Upcoming Approved Events
+                    </CardTitle>
                     <CardDescription className="text-green-600">
                       All approved events happening soon
                     </CardDescription>
@@ -411,13 +467,19 @@ export const StaffDashboard = () => {
                             className="flex items-center justify-between p-3 border-l-4 border-green-500 bg-green-50 rounded-r-lg"
                           >
                             <div>
-                              <p className="font-medium text-gray-900">{event.title}</p>
+                              <p className="font-medium text-gray-900">
+                                {event.title}
+                              </p>
                               <p className="text-sm text-gray-600">
-                                {event.start_date?.slice(0, 10)} • {venues[event.venue_id] || 'TBD'}
+                                {event.start_date?.slice(0, 10)} •{" "}
+                                {venues[event.venue_id] || "TBD"}
                               </p>
                             </div>
                             <div className="flex gap-2">
-                              <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
+                              <Badge
+                                variant="outline"
+                                className="border-green-200 text-green-700 bg-green-50"
+                              >
                                 Approved
                               </Badge>
                             </div>
@@ -432,6 +494,52 @@ export const StaffDashboard = () => {
           </>
         )}
       </div>
+      {/* Add a Dialog/modal to show full event details when selectedReportEvent is set */}
+      <Dialog
+        open={!!selectedReportEvent}
+        onOpenChange={() => setSelectedReportEvent(null)}
+      >
+        <DialogContent className="border-emerald-100">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-800">Event Report</DialogTitle>
+          </DialogHeader>
+          {selectedReportEvent && (
+            <div className="text-gray-700 space-y-2">
+              <div>
+                <strong>Title:</strong> {selectedReportEvent.title}
+              </div>
+              <div>
+                <strong>Description:</strong> {selectedReportEvent.description}
+              </div>
+              <div>
+                <strong>Date:</strong>{" "}
+                {selectedReportEvent.start_date?.slice(0, 10)}
+              </div>
+              <div>
+                <strong>Time:</strong>{" "}
+                {selectedReportEvent.start_date?.slice(11, 16)} -{" "}
+                {selectedReportEvent.end_date?.slice(11, 16)}
+              </div>
+              <div>
+                <strong>Venue:</strong> {selectedReportEvent.venue_id}
+              </div>
+              <div>
+                <strong>Type:</strong> {selectedReportEvent.event_type}
+              </div>
+              <div>
+                <strong>Max Participants:</strong>{" "}
+                {selectedReportEvent.max_participants}
+              </div>
+              <div>
+                <strong>Purpose:</strong> {selectedReportEvent.description}
+              </div>
+              <div>
+                <strong>Status:</strong> {selectedReportEvent.status}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

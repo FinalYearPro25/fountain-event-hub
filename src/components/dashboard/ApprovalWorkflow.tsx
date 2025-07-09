@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,19 +43,24 @@ export const ApprovalWorkflow = ({
   // Fetch venue names when component mounts
   React.useEffect(() => {
     const fetchVenues = async () => {
-      const uniqueVenueIds = [...new Set(events.map(e => e.venue_id).filter(Boolean))];
+      const uniqueVenueIds = [
+        ...new Set(events.map((e) => e.venue_id).filter(Boolean)),
+      ];
       if (uniqueVenueIds.length === 0) return;
 
       const { data: venuesData } = await supabase
-        .from('venues')
-        .select('id, name')
-        .in('id', uniqueVenueIds);
+        .from("venues")
+        .select("id, name")
+        .in("id", uniqueVenueIds);
 
       if (venuesData) {
-        const venueMap = venuesData.reduce((acc, venue) => {
-          acc[venue.id] = venue.name;
-          return acc;
-        }, {} as { [key: string]: string });
+        const venueMap = venuesData.reduce(
+          (acc, venue) => {
+            acc[venue.id] = venue.name;
+            return acc;
+          },
+          {} as { [key: string]: string }
+        );
         setVenues(venueMap);
       }
     };
@@ -64,7 +68,10 @@ export const ApprovalWorkflow = ({
     fetchVenues();
   }, [events]);
 
-  const getNextStatus = (currentStatus: string, userRole: string): EventStatus => {
+  const getNextStatus = (
+    currentStatus: string,
+    userRole: string
+  ): EventStatus => {
     const approvalFlow = {
       pending_approval: {
         staff: "pending_student_affairs" as EventStatus,
@@ -79,7 +86,11 @@ export const ApprovalWorkflow = ({
       },
     } as const;
 
-    return approvalFlow[currentStatus as keyof typeof approvalFlow]?.[userRole as keyof typeof approvalFlow[keyof typeof approvalFlow]] || "approved";
+    return (
+      approvalFlow[currentStatus as keyof typeof approvalFlow]?.[
+        userRole as keyof (typeof approvalFlow)[keyof typeof approvalFlow]
+      ] || "approved"
+    );
   };
 
   const canApprove = (event: Event) => {
@@ -87,7 +98,9 @@ export const ApprovalWorkflow = ({
 
     switch (event.status) {
       case "pending_approval":
-        return ["staff", "event_coordinator", "department_head"].includes(userRole || "");
+        return ["staff", "event_coordinator", "department_head"].includes(
+          userRole || ""
+        );
       case "pending_student_affairs":
         return userRole === "dean_student_affairs";
       case "pending_vc":
@@ -99,13 +112,11 @@ export const ApprovalWorkflow = ({
 
   const createNotification = async (userId: string, message: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          message: message
-        });
-      
+      const { error } = await supabase.from("notifications").insert({
+        user_id: userId,
+        message: message,
+      });
+
       if (error) {
         console.error("Failed to create notification:", error);
       }
@@ -144,8 +155,6 @@ export const ApprovalWorkflow = ({
         updateData.approver_role = profile.role;
       }
 
-      console.log("Updating event with data:", updateData);
-
       const { data, error } = await supabase
         .from("events")
         .update(updateData)
@@ -157,18 +166,15 @@ export const ApprovalWorkflow = ({
         throw new Error(`Database update failed: ${error.message}`);
       }
 
-      console.log("Event updated successfully:", data);
-
       // Create notification for the event organizer
-      const notificationMessage = approve 
-        ? `Your event "${event.title}" has been ${newStatus === 'approved' ? 'approved' : 'moved to the next approval stage'}.`
-        : `Your event "${event.title}" has been rejected. ${comments[eventId] ? 'Reason: ' + comments[eventId] : ''}`;
-      
+      const notificationMessage = approve
+        ? `Your event \"${event.title}\" has been ${newStatus === "approved" ? "approved" : "moved to the next approval stage"}.`
+        : `Your event \"${event.title}\" has been rejected. ${comments[eventId] ? "Reason: " + comments[eventId] : ""}`;
       await createNotification(event.organizer_id, notificationMessage);
 
       // Clear comment
-      setComments(prev => ({ ...prev, [eventId]: '' }));
-      
+      setComments((prev) => ({ ...prev, [eventId]: "" }));
+
       // Show success toast
       toast({
         title: approve ? "Event Approved" : "Event Rejected",
@@ -177,12 +183,14 @@ export const ApprovalWorkflow = ({
 
       // Refresh parent dashboard
       onEventUpdated();
-
     } catch (error) {
       console.error("Error updating event:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update event status. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update event status. Please try again.",
         variant: "destructive",
       });
     } finally {
