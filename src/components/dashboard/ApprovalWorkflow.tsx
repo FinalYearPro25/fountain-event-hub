@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,7 +53,7 @@ export const ApprovalWorkflow = ({
         const venueMap = venuesData.reduce((acc, venue) => {
           acc[venue.id] = venue.name;
           return acc;
-        }, {});
+        }, {} as { [key: string]: string });
         setVenues(venueMap);
       }
     };
@@ -74,9 +74,9 @@ export const ApprovalWorkflow = ({
       pending_vc: {
         senate_member: "approved",
       },
-    };
+    } as const;
 
-    return approvalFlow[currentStatus]?.[userRole] || "approved";
+    return approvalFlow[currentStatus as keyof typeof approvalFlow]?.[userRole as keyof typeof approvalFlow[keyof typeof approvalFlow]] || "approved";
   };
 
   const canApprove = (event: Event) => {
@@ -84,7 +84,7 @@ export const ApprovalWorkflow = ({
 
     switch (event.status) {
       case "pending_approval":
-        return ["staff", "event_coordinator", "department_head"].includes(userRole);
+        return ["staff", "event_coordinator", "department_head"].includes(userRole || "");
       case "pending_student_affairs":
         return userRole === "dean_student_affairs";
       case "pending_vc":
@@ -125,8 +125,12 @@ export const ApprovalWorkflow = ({
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
-      // Use a more targeted update approach to avoid RLS issues
-      const updateData = {
+      // Create properly typed update object
+      const updateData: {
+        status: string;
+        approval_notes?: string;
+        approver_role?: string;
+      } = {
         status: newStatus,
       };
 
@@ -268,7 +272,7 @@ export const ApprovalWorkflow = ({
                 {event.venue_id && (
                   <div>
                     <span className="font-medium">Venue:</span>{" "}
-                    {venues[event.venue_id] || event.venue_id}
+                    {venues[event.venue_id] || "Loading..."}
                   </div>
                 )}
               </div>
