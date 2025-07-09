@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,6 +86,23 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
     }
   };
 
+  const createNotification = async (userId: string, message: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          message: message
+        });
+      
+      if (error) {
+        console.error("[ERROR] Failed to create notification:", error);
+      }
+    } catch (error) {
+      console.error("[ERROR] Error creating notification:", error);
+    }
+  };
+
   const handleApproval = async (eventId: string, approve: boolean) => {
     console.log("[DEBUG] Handling approval:", { eventId, approve });
     setActionLoading(eventId);
@@ -123,6 +139,13 @@ export const ApprovalWorkflow = ({ events, onEventUpdated }: ApprovalWorkflowPro
       }
 
       console.log("[SUCCESS] Event updated successfully");
+
+      // Create notification for the event organizer
+      const notificationMessage = approve 
+        ? `Your event "${event.title}" has been ${newStatus === 'approved' ? 'approved' : 'moved to the next approval stage'}.`
+        : `Your event "${event.title}" has been rejected. ${comments[eventId] ? 'Reason: ' + comments[eventId] : ''}`;
+      
+      await createNotification(event.organizer_id, notificationMessage);
 
       // Clear comment
       setComments(prev => ({ ...prev, [eventId]: '' }));

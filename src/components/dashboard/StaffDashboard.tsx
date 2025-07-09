@@ -7,6 +7,8 @@ import { ViewEvents } from "./ViewEvents";
 import { ViewVenues } from "./ViewVenues";
 import { BrowseEvents } from "./BrowseEvents";
 import { ApprovalWorkflow } from "./ApprovalWorkflow";
+import { EventReports } from "./EventReports";
+import { EventSettings } from "./EventSettings";
 import { UserHeader } from "@/components/common/UserHeader";
 import {
   Card,
@@ -27,12 +29,6 @@ import {
   Eye,
   Settings,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +48,8 @@ export const StaffDashboard = () => {
   const [showViewEvents, setShowViewEvents] = useState(false);
   const [showViewVenues, setShowViewVenues] = useState(false);
   const [showBrowseEvents, setShowBrowseEvents] = useState(false);
+  const [showReports, setShowReports] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Real data state
   const [myEvents, setMyEvents] = useState<EventRecord[]>([]);
@@ -65,10 +63,6 @@ export const StaffDashboard = () => {
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  // Add state for modals
-  const [showReports, setShowReports] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -93,7 +87,7 @@ export const StaffDashboard = () => {
       console.log("[DEBUG] Created events:", createdRes.data);
       setMyEvents(createdRes.data || []);
 
-      // Fetch events assigned to this staff member for approval
+      // Fetch events assigned to this staff member for approval with all relevant statuses
       const pendingRes = await supabase
         .from("events")
         .select("*")
@@ -164,6 +158,7 @@ export const StaffDashboard = () => {
     return roleMap[role] || role.toUpperCase();
   };
 
+  // Component routing
   if (showCreateEvent) {
     return (
       <CreateEvent
@@ -180,6 +175,12 @@ export const StaffDashboard = () => {
   }
   if (showBrowseEvents) {
     return <BrowseEvents onBack={() => setShowBrowseEvents(false)} />;
+  }
+  if (showReports) {
+    return <EventReports onBack={() => setShowReports(false)} />;
+  }
+  if (showSettings) {
+    return <EventSettings onBack={() => setShowSettings(false)} />;
   }
 
   return (
@@ -478,32 +479,6 @@ export const StaffDashboard = () => {
           </>
         )}
       </div>
-
-      <Dialog open={showReports} onOpenChange={setShowReports}>
-        <DialogContent className="border-emerald-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800">Reports</DialogTitle>
-          </DialogHeader>
-          <div className="text-gray-700">
-            Reports feature coming soon! Here you will be able to generate and
-            download event reports.
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="border-emerald-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800">
-              Event Settings
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-gray-700">
-            Event settings feature coming soon! Here you will be able to
-            configure event-related preferences.
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
