@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -384,179 +385,109 @@ export const StaffDashboard = () => {
 
             {/* Main Content Areas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-emerald-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">
-                    My Events & Status
-                  </CardTitle>
-                  <CardDescription className="text-emerald-600">
-                    Track your event approvals and status
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {myEvents.length === 0 ? (
-                      <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
-                        No events created yet.
-                      </div>
-                    ) : (
-                      myEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {event.title}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {event.start_date?.slice(0, 10)} •{" "}
-                              {event.venue_id} • {event.status}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-200 text-emerald-700"
-                          >
-                            {event.status}
-                          </Badge>
+              <div className="space-y-6">
+                <Card className="border-emerald-100 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
+                    <CardTitle className="text-emerald-800">
+                      My Events & Status
+                    </CardTitle>
+                    <CardDescription className="text-emerald-600">
+                      Track your event approvals and status
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {myEvents.length === 0 ? (
+                        <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
+                          No events created yet.
                         </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-emerald-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-                  <CardTitle className="text-emerald-800">
-                    Upcoming Approved Events
-                  </CardTitle>
-                  <CardDescription className="text-emerald-600">
-                    All approved events happening soon
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {approvedEvents.length === 0 ? (
-                      <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
-                        No approved events yet.
-                      </div>
-                    ) : (
-                      approvedEvents.slice(0, 5).map((event) => (
-                        <div
-                          key={event.id}
-                          className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {event.title}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {event.start_date?.slice(0, 10)} •{" "}
-                              {event.venue_id}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
+                      ) : (
+                        myEvents.map((event) => (
+                          <div
+                            key={event.id}
+                            className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
+                          >
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {event.title}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {event.start_date?.slice(0, 10)} •{" "}
+                                {event.venue_id} • {event.status}
+                              </p>
+                            </div>
                             <Badge
                               variant="outline"
-                              className="border-emerald-200 text-emerald-700 bg-emerald-50"
+                              className="border-emerald-200 text-emerald-700"
                             >
-                              Approved
+                              {event.status}
                             </Badge>
-                            <Button
-                              variant="outline"
-                              onClick={() => setSelectedReportEvent(event)}
-                            >
-                              View Report
-                            </Button>
                           </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="border-emerald-100 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
+                    <CardTitle className="text-emerald-800">
+                      Upcoming Approved Events
+                    </CardTitle>
+                    <CardDescription className="text-emerald-600">
+                      All approved events happening soon
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {approvedEvents.length === 0 ? (
+                        <div className="text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
+                          No approved events yet.
                         </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      ) : (
+                        approvedEvents.slice(0, 5).map((event) => (
+                          <div
+                            key={event.id}
+                            className="flex items-center justify-between p-3 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg"
+                          >
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {event.title}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {event.start_date?.slice(0, 10)} •{" "}
+                                {event.venue_id}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-200 text-emerald-700 bg-emerald-50"
+                              >
+                                Approved
+                              </Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedReportEvent(event)}
+                                className="text-xs"
+                              >
+                                View Report
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </>
         )}
       </div>
-<<<<<<< HEAD
-
-      <Dialog open={showReports} onOpenChange={setShowReports}>
-        <DialogContent className="border-emerald-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800">Reports</DialogTitle>
-          </DialogHeader>
-          <div className="text-gray-700">
-            Reports feature coming soon! Here you will be able to generate and
-            download event reports.
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="border-emerald-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800">
-              Event Settings
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-gray-700">
-            Event settings feature coming soon! Here you will be able to
-            configure event-related preferences.
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add a Dialog/modal to show full event details when selectedReportEvent is set */}
-      <Dialog
-        open={!!selectedReportEvent}
-        onOpenChange={() => setSelectedReportEvent(null)}
-      >
-        <DialogContent className="border-emerald-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800">Event Report</DialogTitle>
-          </DialogHeader>
-          {selectedReportEvent && (
-            <div className="text-gray-700 space-y-2">
-              <div>
-                <strong>Title:</strong> {selectedReportEvent.title}
-              </div>
-              <div>
-                <strong>Description:</strong> {selectedReportEvent.description}
-              </div>
-              <div>
-                <strong>Date:</strong>{" "}
-                {selectedReportEvent.start_date?.slice(0, 10)}
-              </div>
-              <div>
-                <strong>Time:</strong>{" "}
-                {selectedReportEvent.start_date?.slice(11, 16)} -{" "}
-                {selectedReportEvent.end_date?.slice(11, 16)}
-              </div>
-              <div>
-                <strong>Venue:</strong> {selectedReportEvent.venue_id}
-              </div>
-              <div>
-                <strong>Type:</strong> {selectedReportEvent.event_type}
-              </div>
-              <div>
-                <strong>Max Participants:</strong>{" "}
-                {selectedReportEvent.max_participants}
-              </div>
-              <div>
-                <strong>Purpose:</strong> {selectedReportEvent.description}
-              </div>
-              <div>
-                <strong>Status:</strong> {selectedReportEvent.status}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-=======
->>>>>>> 2de321415620de896fe27ae9b428aab38de1776e
     </div>
   );
 };
