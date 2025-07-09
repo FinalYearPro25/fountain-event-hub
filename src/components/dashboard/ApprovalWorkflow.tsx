@@ -102,6 +102,23 @@ export const ApprovalWorkflow = ({
     }
   };
 
+  const createNotification = async (userId: string, message: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          message: message
+        });
+      
+      if (error) {
+        console.error("[ERROR] Failed to create notification:", error);
+      }
+    } catch (error) {
+      console.error("[ERROR] Error creating notification:", error);
+    }
+  };
+
   const handleApproval = async (eventId: string, approve: boolean) => {
     console.log("[DEBUG] Handling approval:", { eventId, approve });
     setActionLoading(eventId);
@@ -141,6 +158,7 @@ export const ApprovalWorkflow = ({
 
       console.log("[SUCCESS] Event updated successfully");
 
+<<<<<<< HEAD
       // Send notification to organizer
       await supabase.from("notifications").insert({
         user_id: event.organizer_id,
@@ -148,6 +166,18 @@ export const ApprovalWorkflow = ({
         read: false,
       });
 
+=======
+      // Create notification for the event organizer
+      const notificationMessage = approve 
+        ? `Your event "${event.title}" has been ${newStatus === 'approved' ? 'approved' : 'moved to the next approval stage'}.`
+        : `Your event "${event.title}" has been rejected. ${comments[eventId] ? 'Reason: ' + comments[eventId] : ''}`;
+      
+      await createNotification(event.organizer_id, notificationMessage);
+
+      // Clear comment
+      setComments(prev => ({ ...prev, [eventId]: '' }));
+      
+>>>>>>> 2de321415620de896fe27ae9b428aab38de1776e
       // Show success toast
       toast({
         title: approve ? "Event Approved" : "Event Rejected",
