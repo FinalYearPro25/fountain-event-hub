@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,7 @@ export const ApprovalWorkflow = ({
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
+      // Create update object with proper typing
       const updateData: {
         status: EventStatus;
         approval_notes?: string;
@@ -155,11 +157,12 @@ export const ApprovalWorkflow = ({
         updateData.approver_role = profile.role;
       }
 
-      const { data, error } = await supabase
+      console.log("Updating event with data:", updateData);
+
+      const { error } = await supabase
         .from("events")
         .update(updateData)
-        .eq("id", eventId)
-        .select("*");
+        .eq("id", eventId);
 
       if (error) {
         console.error("Supabase update error:", error);
@@ -168,8 +171,9 @@ export const ApprovalWorkflow = ({
 
       // Create notification for the event organizer
       const notificationMessage = approve
-        ? `Your event \"${event.title}\" has been ${newStatus === "approved" ? "approved" : "moved to the next approval stage"}.`
-        : `Your event \"${event.title}\" has been rejected. ${comments[eventId] ? "Reason: " + comments[eventId] : ""}`;
+        ? `Your event "${event.title}" has been ${newStatus === "approved" ? "approved" : "moved to the next approval stage"}.`
+        : `Your event "${event.title}" has been rejected. ${comments[eventId] ? "Reason: " + comments[eventId] : ""}`;
+      
       await createNotification(event.organizer_id, notificationMessage);
 
       // Clear comment
@@ -304,7 +308,7 @@ export const ApprovalWorkflow = ({
                   <Button
                     onClick={() => handleApproval(event.id, true)}
                     disabled={actionLoading === event.id}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700"
                   >
                     <Check className="h-4 w-4" />
                     {actionLoading === event.id ? "Processing..." : "Approve"}
