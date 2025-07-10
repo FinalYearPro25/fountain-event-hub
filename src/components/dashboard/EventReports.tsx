@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/components/auth/AuthProvider";
-import { Calendar, MapPin, Users, Clock, FileText, Download, Search, ArrowLeft, Eye, Filter } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, FileText, Download, Search, ArrowLeft, Eye, Filter, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 

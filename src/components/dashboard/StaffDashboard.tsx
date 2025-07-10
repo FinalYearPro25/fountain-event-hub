@@ -29,12 +29,6 @@ import {
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type EventRecord = Database["public"]["Tables"]["events"]["Row"];
 
@@ -494,52 +488,6 @@ export const StaffDashboard = () => {
           </>
         )}
       </div>
-      {/* Add a Dialog/modal to show full event details when selectedReportEvent is set */}
-      <Dialog
-        open={!!selectedReportEvent}
-        onOpenChange={() => setSelectedReportEvent(null)}
-      >
-        <DialogContent className="border-emerald-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800">Event Report</DialogTitle>
-          </DialogHeader>
-          {selectedReportEvent && (
-            <div className="text-gray-700 space-y-2">
-              <div>
-                <strong>Title:</strong> {selectedReportEvent.title}
-              </div>
-              <div>
-                <strong>Description:</strong> {selectedReportEvent.description}
-              </div>
-              <div>
-                <strong>Date:</strong>{" "}
-                {selectedReportEvent.start_date?.slice(0, 10)}
-              </div>
-              <div>
-                <strong>Time:</strong>{" "}
-                {selectedReportEvent.start_date?.slice(11, 16)} -{" "}
-                {selectedReportEvent.end_date?.slice(11, 16)}
-              </div>
-              <div>
-                <strong>Venue:</strong> {selectedReportEvent.venue_id}
-              </div>
-              <div>
-                <strong>Type:</strong> {selectedReportEvent.event_type}
-              </div>
-              <div>
-                <strong>Max Participants:</strong>{" "}
-                {selectedReportEvent.max_participants}
-              </div>
-              <div>
-                <strong>Purpose:</strong> {selectedReportEvent.description}
-              </div>
-              <div>
-                <strong>Status:</strong> {selectedReportEvent.status}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
