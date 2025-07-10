@@ -131,38 +131,44 @@ export const ApprovalWorkflow = ({
     try {
       const event = events.find((e) => e.id === eventId);
       if (!event) {
-        console.error("Event not found:", eventId);
-        return;
+        throw new Error("Event not found");
       }
 
       const newStatus: EventStatus = approve
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
-      console.log("Current event status:", event.status);
+      console.log("Approving event:", eventId);
+      console.log("Current status:", event.status);
+      console.log("New status:", newStatus);
       console.log("User role:", profile?.role);
-      console.log("New status will be:", newStatus);
 
-      // Create a simplified update object that only includes necessary fields
-      const updateData = {
+      // Simple update with minimal data
+      const updateData: any = {
         status: newStatus,
-        ...(comments[eventId] && { approval_notes: comments[eventId] }),
-        ...(profile?.role && { approver_role: profile.role }),
       };
 
-      console.log("Update data being sent:", updateData);
+      // Only add optional fields if they exist
+      if (comments[eventId]?.trim()) {
+        updateData.approval_notes = comments[eventId].trim();
+      }
 
-      // Use a more direct update approach
+      if (profile?.role) {
+        updateData.approver_role = profile.role;
+      }
+
+      console.log("Sending update:", updateData);
+
       const { data, error } = await supabase
         .from("events")
         .update(updateData)
         .eq("id", eventId)
-        .select()
+        .select("*")
         .single();
 
       if (error) {
-        console.error("Supabase update error details:", error);
-        throw new Error(`Database update failed: ${error.message}`);
+        console.error("Database error:", error);
+        throw new Error(`Failed to update event: ${error.message}`);
       }
 
       console.log("Update successful:", data);
@@ -170,7 +176,7 @@ export const ApprovalWorkflow = ({
       // Create notification for the event organizer
       const notificationMessage = approve
         ? `Your event "${event.title}" has been ${newStatus === "approved" ? "approved" : "moved to the next approval stage"}.`
-        : `Your event "${event.title}" has been rejected. ${comments[eventId] ? "Reason: " + comments[eventId] : ""}`;
+        : `Your event "${event.title}" has been rejected.${comments[eventId] ? " Reason: " + comments[eventId] : ""}`;
       
       await createNotification(event.organizer_id, notificationMessage);
 
@@ -186,7 +192,7 @@ export const ApprovalWorkflow = ({
       // Refresh parent dashboard
       onEventUpdated();
     } catch (error) {
-      console.error("Error updating event:", error);
+      console.error("Error in handleApproval:", error);
       toast({
         title: "Error",
         description:
