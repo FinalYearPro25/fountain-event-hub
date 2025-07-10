@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -140,34 +139,33 @@ export const ApprovalWorkflow = ({
         ? getNextStatus(event.status, profile?.role || "")
         : "rejected";
 
-      // Create update object with proper typing
-      const updateData: {
-        status: EventStatus;
-        approval_notes?: string;
-        approver_role?: string;
-      } = {
+      console.log("Current event status:", event.status);
+      console.log("User role:", profile?.role);
+      console.log("New status will be:", newStatus);
+
+      // Create a simplified update object that only includes necessary fields
+      const updateData = {
         status: newStatus,
+        ...(comments[eventId] && { approval_notes: comments[eventId] }),
+        ...(profile?.role && { approver_role: profile.role }),
       };
 
-      if (comments[eventId]) {
-        updateData.approval_notes = comments[eventId];
-      }
+      console.log("Update data being sent:", updateData);
 
-      if (profile?.role) {
-        updateData.approver_role = profile.role;
-      }
-
-      console.log("Updating event with data:", updateData);
-
-      const { error } = await supabase
+      // Use a more direct update approach
+      const { data, error } = await supabase
         .from("events")
         .update(updateData)
-        .eq("id", eventId);
+        .eq("id", eventId)
+        .select()
+        .single();
 
       if (error) {
-        console.error("Supabase update error:", error);
+        console.error("Supabase update error details:", error);
         throw new Error(`Database update failed: ${error.message}`);
       }
+
+      console.log("Update successful:", data);
 
       // Create notification for the event organizer
       const notificationMessage = approve
